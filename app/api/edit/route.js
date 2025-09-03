@@ -67,6 +67,21 @@ export async function POST(req) {
     return Response.json({ dataUrl: `data:${outMime};base64,${outB64}` });
   } catch (err) {
     console.error("/api/edit error", err);
+    
+    // Handle API quota exceeded errors specifically
+    if (err?.status === 429 || err?.message?.includes("quota") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
+      return Response.json({ 
+        error: "API quota exceeded. Please try again in a few minutes or check your Gemini API plan at https://ai.google.dev/" 
+      }, { status: 429 });
+    }
+    
+    // Handle other API errors
+    if (err?.status >= 400 && err?.status < 500) {
+      return Response.json({ 
+        error: err?.message || "API request failed. Please check your API key and try again." 
+      }, { status: err.status });
+    }
+    
     return Response.json({ error: err?.message || "Server error" }, { status: 500 });
   }
 }
