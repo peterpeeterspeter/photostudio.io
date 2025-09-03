@@ -91,11 +91,48 @@ export async function GET(req: Request) {
       
       const relitUrl = await relightOrShadow(signedData.signedUrl, 'relight');
 
-      // 5) Download final result and save
+      // 5) Download relit and save final output
       console.log(`Saving final result for ${img.id}...`);
       const relitResponse = await fetch(relitUrl);
-      const finalBuffer = Buffer.from(new Uint8Array(await relitResponse.arrayBuffer()));
-      const finalKey = await uploadOutput(batchId, finalBuffer);
+      const relitBuffer = Buffer.from(new Uint8Array(await relitResponse.arrayBuffer()));
+
+      // Save master PNG
+      const finalKey = await uploadOutput(batchId, relitBuffer);
+
+      // 6) Aspect ratio exports (contain by default)
+      console.log(`Generating aspect ratio variants for ${img.id}...`);
+      try {
+        const { batchExport } = await import('../../../../lib/aspect');
+        const ratios: import('../../../../lib/aspect').RatioKey[] = ['1:1','4:5','3:4','16:9','9:16'];
+        const formats: import('../../../../lib/aspect').Format[] = ['png','jpg'];
+
+        for (const fmt of formats) {
+          const exps = await batchExport(
+            relitBuffer, 
+            ratios.map((r) => ({ 
+              ratio: r, 
+              format: fmt, 
+              width: 2048, 
+              background: '#ffffff' 
+            })), 
+            { cover: false }
+          );
+          
+          for (const exp of exps) {
+            const variantKey = `outputs/${batchId}/variants/${img.id}/${exp.key}`;
+            const { error: vErr } = await sb.storage
+              .from('outputs')
+              .upload(variantKey, exp.buf, { 
+                contentType: fmt === 'png' ? 'image/png' : 'image/jpeg',
+                upsert: false
+              });
+            if (vErr) console.warn('variant upload error', vErr);
+          }
+        }
+        console.log(`Generated ${ratios.length * formats.length} variants for ${img.id}`);
+      } catch (variantErr: any) {
+        console.warn(`Variant generation failed for ${img.id}:`, variantErr.message);
+      }
 
       // Mark as completed
       await sb.from('images').update({ 

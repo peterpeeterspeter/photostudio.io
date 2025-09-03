@@ -41,6 +41,8 @@ export default function BatchEditor() {
   const [batchId, setBatchId] = useState<string | null>(null);
   const [status, setStatus] = useState<BatchStatus | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [ratios, setRatios] = useState<Record<string, boolean>>({ '1:1': true, '4:5': true, '3:4': false, '16:9': false, '9:16': true });
+  const [coverMode, setCoverMode] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilesChange = (newFiles: FileList | null) => {
@@ -236,6 +238,36 @@ export default function BatchEditor() {
                   placeholder="Custom processing instructions..."
                   className="w-full h-24 p-3 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-black/20 focus:border-black"
                 />
+                
+                {/* Aspect Ratios Selection */}
+                <div className="mt-4 p-3 bg-neutral-50 rounded-lg">
+                  <h4 className="text-sm font-medium mb-3">Export Formats</h4>
+                  <div className="grid grid-cols-5 gap-2 mb-3">
+                    {['1:1','4:5','3:4','16:9','9:16'].map((r) => (
+                      <label key={r} className="flex items-center gap-2 text-sm">
+                        <input 
+                          type="checkbox" 
+                          checked={!!ratios[r]} 
+                          onChange={() => setRatios({ ...ratios, [r]: !ratios[r] })}
+                          className="rounded"
+                        />
+                        <span>{r}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-neutral-600">
+                    <input 
+                      type="checkbox" 
+                      checked={coverMode} 
+                      onChange={(e) => setCoverMode(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span>Crop to fill (cover) instead of letterbox (contain)</span>
+                  </label>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    Each image will be exported in PNG and JPG formats for all selected aspect ratios.
+                  </p>
+                </div>
               </div>
 
               {/* Create Batch Button */}
