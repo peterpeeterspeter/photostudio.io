@@ -67,7 +67,7 @@ export default function AccountClient() {
         if (!prof) {
           const { error: insErr } = await supabase
             .from("profiles")
-            .insert({ id: u.id, email: u.email });
+            .insert({ id: u.id, email: u.email ?? null });
           if (insErr) throw insErr;
           setProfile({ id: u.id, email: u.email ?? null, plan: "free", current_period_end: null, stripe_customer_id: null });
         } else {
