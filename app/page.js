@@ -1,9 +1,41 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 export default function Home() {
   // FAQ state
   const [faqOpen, setFaqOpen] = useState(0);
+  
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        // Fetch profile
+        supabase.from('profiles').select('*').eq('id', user.id).single()
+          .then(({ data }) => setProfile(data));
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          .then(({ data }) => setProfile(data));
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const faqs = [
     {
@@ -38,7 +70,19 @@ export default function Home() {
             <a href="#integrations" style={st.link}>Integrations</a>
             <a href="#pricing" style={st.link}>Pricing</a>
             <a href="#faq" style={st.link}>FAQ</a>
-            <a href="/editor" style={st.navCta}>Open Editor</a>
+            {user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <a href="/account" style={st.link}>
+                  {user.email} ({profile?.plan || 'free'})
+                </a>
+                <a href="/editor" style={st.navCta}>Open Editor</a>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <a href="/login" style={st.link}>Sign In</a>
+                <a href="/editor" style={st.navCta}>Try Free</a>
+              </div>
+            )}
           </div>
         </div>
       </nav>
