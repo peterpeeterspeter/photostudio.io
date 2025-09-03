@@ -9,18 +9,33 @@ export default function LoginPage() {
   const [msg, setMsg] = useState('');
 
   async function magicLink() {
+    setMsg('Sending magic link...');
     const { error } = await supabase.auth.signInWithOtp({ 
       email, 
       options: { emailRedirectTo: `${location.origin}/auth/callback` } 
     });
-    setMsg(error ? error.message : 'Check your email for a login link.');
+    if (error) {
+      console.error('Magic link error:', error);
+      setMsg(`Error: ${error.message}`);
+    } else {
+      setMsg('Check your email for a login link.');
+    }
   }
 
   async function google() {
-    await supabase.auth.signInWithOAuth({ 
-      provider: 'google', 
-      options: { redirectTo: `${location.origin}/auth/callback` } 
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google', 
+        options: { redirectTo: `${location.origin}/auth/callback` } 
+      });
+      if (error) {
+        console.error('Google OAuth error:', error);
+        setMsg(`Google OAuth error: ${error.message}`);
+      }
+    } catch (err) {
+      console.error('Google OAuth failed:', err);
+      setMsg('Google OAuth failed. Please try again.');
+    }
   }
 
   return (
