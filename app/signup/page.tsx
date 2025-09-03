@@ -46,20 +46,19 @@ export default function SignUpPage() {
           setMessage('Registration successful! Redirecting to your account...');
           setTimeout(() => router.push('/account'), 1000);
         } else {
-          // User needs email confirmation, but try to sign them in anyway
-          console.log('User created but not confirmed, attempting sign-in...');
+          // User needs email confirmation, use magic link to complete the process
+          console.log('User created but not confirmed, sending magic link...');
           
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          const { error: magicLinkError } = await supabase.auth.signInWithOtp({
             email,
-            password,
+            options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
           });
           
-          if (!signInError && signInData.user) {
-            console.log('Sign-in successful');
-            setMessage('Registration successful! Redirecting to your account...');
-            setTimeout(() => router.push('/account'), 1000);
+          if (!magicLinkError) {
+            setMessage('Account created! A login link has been sent to your email. Click the link to access your account.');
           } else {
-            setMessage('Account created! Please check your email to confirm your account, or try signing in.');
+            console.error('Magic link error:', magicLinkError);
+            setMessage('Account created, but there was an issue sending the login email. Please try using the magic link login on the login page.');
           }
         }
       }
