@@ -1,288 +1,346 @@
 "use client";
+import React, { useState } from "react";
 
-export default function LandingPage() {
+export default function Home() {
+  // FAQ state
+  const [faqOpen, setFaqOpen] = useState(0);
+
+  const faqs = [
+    {
+      q: "Wat doet Photostudio.io?",
+      a: "We maken van je smartphone- of winkel-foto's direct studio-waardige productbeelden: achtergrondwissels, ghost mannequin, flatlays, lifestyle en virtual try-on.",
+    },
+    {
+      q: "Is er een gratis plan?",
+      a: "Ja, je kunt gratis watermarked previews genereren. Pro en Agency ontgrendelen hoge resolutie, batch en integraties.",
+    },
+    {
+      q: "Ondersteunt het virtual try-on?",
+      a: "Ja (beta). Upload een foto van jezelf + het kledingstuk. De AI plaatst de kleding realistisch op de persoon.",
+    },
+    {
+      q: "Kan ik direct naar mijn webshop exporteren?",
+      a: "Ja, met de Pro/Agency-plannen kun je naar Shopify/WooCommerce pushen.",
+    },
+  ];
+
   return (
-    <div style={{ 
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      lineHeight: '1.6',
-      margin: 0,
-      padding: 0,
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      minHeight: '100vh',
-      color: '#333'
-    }}>
-      {/* Header */}
-      <header style={{
-        padding: '1rem 2rem',
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              background: 'linear-gradient(45deg, #667eea, #764ba2)',
-              borderRadius: '8px'
-            }}></div>
-            <h1 style={{
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              margin: 0,
-              background: 'linear-gradient(45deg, #667eea, #764ba2)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              Photostudio.io
-            </h1>
+    <div style={st.page}>
+      {/* Top bar */}
+      <nav style={st.nav}>
+        <div style={st.navInner}>
+          <a href="/" style={st.brand}>
+            <span style={st.logoDot} />
+            <strong>Photostudio.io</strong>
+          </a>
+          <div style={st.navLinks}>
+            <a href="#features" style={st.link}>Features</a>
+            <a href="#integrations" style={st.link}>Integrations</a>
+            <a href="#pricing" style={st.link}>Pricing</a>
+            <a href="#faq" style={st.link}>FAQ</a>
+            <a href="/editor" style={st.navCta}>Open Editor</a>
           </div>
-          <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-            <a href="#features" style={{ textDecoration: 'none', color: '#666', fontWeight: '500' }}>Features</a>
-            <a href="#pricing" style={{ textDecoration: 'none', color: '#666', fontWeight: '500' }}>Pricing</a>
-            <a href="/editor" style={{
-              background: 'linear-gradient(45deg, #667eea, #764ba2)',
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '25px',
-              textDecoration: 'none',
-              fontWeight: '600',
-              transition: 'transform 0.2s',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-            >
-              Start Editing
-            </a>
-          </nav>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <header style={st.heroWrap}>
+        <div style={st.heroBg1} />
+        <div style={st.heroBg2} />
+        <div style={st.hero}>
+          <h1 style={st.h1}>
+            AI product photography for{" "}
+            <span style={st.h1Accent}>boutiques & D2C brands</span>
+          </h1>
+          <p style={st.heroSub}>
+            Turn phone snaps into studio-quality visuals in minutes:
+            background swaps, ghost mannequin, flatlays, lifestyle scenes, and virtual try-on.
+          </p>
+          <div style={st.heroCtas}>
+            <a href="/editor" style={st.ctaPrimary}>Try the Editor</a>
+            <a href="#pricing" style={st.ctaSecondary}>See Pricing</a>
+          </div>
+
+          {/* Mock panel */}
+          <div style={st.mockWrap} aria-hidden>
+            <div style={st.mockCard}>
+              <div style={st.mockTop}>
+                <span style={st.winDot} />
+                <span style={st.winDot} />
+                <span style={st.winDot} />
+              </div>
+              <div style={st.mockBody}>
+                <aside style={st.mockSide}>
+                  <div style={st.badge}>Presets</div>
+                  <ul style={st.sideList}>
+                    <li>Studio Background</li>
+                    <li>Ghost Mannequin</li>
+                    <li>Lifestyle Loft</li>
+                    <li>Flatlay Marble</li>
+                  </ul>
+                </aside>
+                <section style={st.mockCanvas}>
+                  <div style={st.mockBefore}>Before</div>
+                  <div style={st.mockAfter}>After</div>
+                </section>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section style={{
-        padding: '4rem 2rem',
-        textAlign: 'center',
-        background: 'transparent'
-      }}>
-        <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          color: 'white'
-        }}>
-          <h2 style={{
-            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-            fontWeight: '800',
-            margin: '0 0 1rem 0',
-            textShadow: '0 2px 20px rgba(0,0,0,0.3)'
-          }}>
-            AI-Powered Fashion Photo Editing
-          </h2>
-          <p style={{
-            fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-            margin: '0 0 2rem 0',
-            opacity: '0.9',
-            maxWidth: '600px',
-            margin: '0 auto 2rem auto'
-          }}>
-            Transform your fashion photography with professional AI editing. Ghost mannequins, studio backgrounds, and lifestyle scenes in seconds.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="/editor" style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              color: '#333',
-              padding: '1rem 2rem',
-              borderRadius: '30px',
-              textDecoration: 'none',
-              fontWeight: '700',
-              fontSize: '1.1rem',
-              transition: 'all 0.3s',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-3px)';
-              e.target.style.boxShadow = '0 15px 40px rgba(0,0,0,0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-            }}
-            >
-              Try Free Editor
-            </a>
-            <button style={{
-              background: 'transparent',
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.8)',
-              padding: '1rem 2rem',
-              borderRadius: '30px',
-              fontWeight: '600',
-              fontSize: '1.1rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'rgba(255,255,255,0.1)';
-              e.target.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.transform = 'translateY(0)';
-            }}
-            >
-              Watch Demo
-            </button>
-          </div>
+      {/* Logos / social proof */}
+      <section style={st.section}>
+        <p style={st.kicker}>Trusted by growing shops and agencies</p>
+        <div style={st.logoRow}>
+          <Logo text="Marais Boutique" />
+          <Logo text="Denim District" />
+          <Logo text="Studio Iris" />
+          <Logo text="Kumo Agency" />
+          <Logo text="Avanti D2C" />
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" style={{
-        padding: '4rem 2rem',
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h3 style={{
-            fontSize: '2.5rem',
-            fontWeight: '700',
-            textAlign: 'center',
-            margin: '0 0 3rem 0',
-            background: 'linear-gradient(45deg, #667eea, #764ba2)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
-            Professional Features
-          </h3>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '2rem',
-            marginBottom: '3rem'
-          }}>
-            {[
-              {
-                title: "Ghost Mannequin Effect",
-                description: "Remove models while preserving natural garment shape and inner openings",
-                icon: "👻"
-              },
-              {
-                title: "Studio Backgrounds",
-                description: "Replace backgrounds with professional white studio sweeps and lighting",
-                icon: "🎯"
-              },
-              {
-                title: "Lifestyle Scenes",
-                description: "Place garments in beautiful lifestyle settings with perfect lighting",
-                icon: "🏠"
-              },
-              {
-                title: "Flatlay Compositions",
-                description: "Transform into top-down flatlay shots on marble or other surfaces",
-                icon: "📐"
-              }
-            ].map((feature, index) => (
-              <div key={index} style={{
-                background: 'white',
-                padding: '2rem',
-                borderRadius: '15px',
-                textAlign: 'center',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                transition: 'transform 0.3s',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => e.target.style.transform = 'translateY(-5px)'}
-              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-              >
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{feature.icon}</div>
-                <h4 style={{ fontSize: '1.3rem', fontWeight: '600', margin: '0 0 1rem 0' }}>
-                  {feature.title}
-                </h4>
-                <p style={{ color: '#666', margin: 0 }}>{feature.description}</p>
-              </div>
-            ))}
-          </div>
+      {/* Features */}
+      <section id="features" style={st.sectionAlt}>
+        <h2 style={st.h2}>Why Photostudio.io?</h2>
+        <p style={st.sub}>Fast, consistent, and budget-friendly — without a studio.</p>
+        <div style={st.grid3}>
+          <Card title="Background swaps"
+                desc="Replace cluttered shop backgrounds with clean white or on-brand lifestyle scenes."/>
+          <Card title="Ghost mannequin"
+                desc="Remove model/mannequin; preserve natural drape, seams & texture for true e-commerce shots."/>
+          <Card title="Flatlays & outfit comps"
+                desc="Create Pinterest-ready flatlays and multi-product looks for campaigns."/>
+          <Card title="Virtual try-on (beta)"
+                desc="Put garments on a user photo with realistic shadows and fit (front-pose works best)."/>
+          <Card title="Batch editing"
+                desc="Process dozens of SKUs in one go to keep listings up to date."/>
+          <Card title="Brand consistency"
+                desc="Reusable presets and color-safe output for a consistent storefront look."/>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section style={{
-        padding: '4rem 2rem',
-        textAlign: 'center',
-        background: 'transparent'
-      }}>
-        <div style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          color: 'white'
-        }}>
-          <h3 style={{
-            fontSize: '2.5rem',
-            fontWeight: '700',
-            margin: '0 0 1rem 0',
-            textShadow: '0 2px 20px rgba(0,0,0,0.3)'
-          }}>
-            Ready to Transform Your Photos?
-          </h3>
-          <p style={{
-            fontSize: '1.2rem',
-            margin: '0 0 2rem 0',
-            opacity: '0.9'
-          }}>
-            Join thousands of fashion brands using AI to create professional product photos in seconds.
-          </p>
-          <a href="/editor" style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            color: '#333',
-            padding: '1.2rem 3rem',
-            borderRadius: '30px',
-            textDecoration: 'none',
-            fontWeight: '700',
-            fontSize: '1.2rem',
-            transition: 'all 0.3s',
-            display: 'inline-block',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-3px)';
-            e.target.style.boxShadow = '0 15px 40px rgba(0,0,0,0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-          }}
-          >
-            Start Editing Now - Free
-          </a>
+      {/* Integrations */}
+      <section id="integrations" style={st.section}>
+        <h2 style={st.h2}>Integrations</h2>
+        <p style={st.sub}>Push images directly to where you sell and market.</p>
+        <div style={st.grid3}>
+          <Integr title="Shopify" desc="Publish edited images straight to product media." />
+          <Integr title="WooCommerce" desc="Sync to your WordPress store with one click." />
+          <Integr title="Zapier/Make" desc="Automate batch edits and folder workflows." />
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" style={st.sectionAlt}>
+        <h2 style={st.h2}>Simple pricing</h2>
+        <p style={st.sub}>Start free, upgrade when you're ready.</p>
+        <div style={st.grid3}>
+          <Price name="Free" price="€0"
+                 features={[
+                   "Watermarked previews",
+                   "2 presets included",
+                   "Up to 5 images / month",
+                 ]}
+                 href="/editor" cta="Start Free" />
+          <Price name="Pro" price="€39" highlight
+                 features={[
+                   "High-res exports",
+                   "All presets + Virtual Try-On (beta)",
+                   "Batch up to 25 images",
+                   "Brand presets & color safety",
+                 ]}
+                 href="/editor" cta="Get Pro" />
+          <Price name="Agency" price="€149"
+                 features={[
+                   "Batch 250+ images",
+                   "Shopify/Woo plugins",
+                   "Team seats & roles",
+                   "Priority support",
+                 ]}
+                 href="mailto:hello@photostudio.io" cta="Contact Sales" />
+        </div>
+      </section>
+
+      {/* CTA banner */}
+      <section style={st.ctaBanner}>
+        <div style={st.ctaInner}>
+          <div>
+            <h3 style={{ margin: 0 }}>Ready to upgrade your product visuals?</h3>
+            <p style={{ margin: "6px 0 0", color: "#5f6368" }}>
+              Try the editor now — no credit card required.
+            </p>
+          </div>
+          <a href="/editor" style={st.ctaPrimary}>Open the Editor</a>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" style={st.section}>
+        <h2 style={st.h2}>FAQ</h2>
+        <div style={st.faqList}>
+          {faqs.map((f, i) => (
+            <details
+              key={i}
+              open={faqOpen === i}
+              onToggle={(e) => setFaqOpen(e.currentTarget.open ? i : null)}
+              style={st.faqItem}
+            >
+              <summary style={st.faqSummary}>{f.q}</summary>
+              <p style={st.faqAnswer}>{f.a}</p>
+            </details>
+          ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{
-        padding: '2rem',
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        textAlign: 'center',
-        color: 'rgba(255, 255, 255, 0.8)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <p style={{ margin: 0, fontSize: '0.9rem' }}>
-          © 2024 Photostudio.io - AI-Powered Fashion Photo Editing
-        </p>
+      <footer style={st.footer}>
+        <div style={st.footerInner}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={st.logoDot} />
+            <strong>Photostudio.io</strong>
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <a href="/editor" style={st.footerLink}>Editor</a>
+            <a href="#pricing" style={st.footerLink}>Pricing</a>
+            <a href="#integrations" style={st.footerLink}>Integrations</a>
+            <a href="mailto:hello@photostudio.io" style={st.footerLink}>Contact</a>
+          </div>
+          <div style={{ color: "#9aa0a6", fontSize: 12 }}>
+            © {new Date().getFullYear()} Photostudio.io — All rights reserved.
+          </div>
+        </div>
       </footer>
+
+      {/* Minimal CSS helpers for responsiveness */}
+      <style jsx>{css}</style>
     </div>
   );
 }
+
+/* --- Small, reusable atoms --- */
+function Card({ title, desc }) {
+  return (
+    <div style={st.card}>
+      <h3 style={st.cardTitle}>{title}</h3>
+      <p style={st.cardDesc}>{desc}</p>
+    </div>
+  );
+}
+function Integr({ title, desc }) {
+  return (
+    <div style={st.card}>
+      <h3 style={st.cardTitle}>{title}</h3>
+      <p style={st.cardDesc}>{desc}</p>
+    </div>
+  );
+}
+function Price({
+  name, price, features, href, cta, highlight,
+}) {
+  return (
+    <div style={{ ...st.priceCard, ...(highlight ? st.priceCardHi : {}) }}>
+      <div style={st.priceHead}>
+        <div style={{ fontWeight: 700 }}>{name}</div>
+        <div style={{ fontSize: 28, fontWeight: 800 }}>{price}
+          <span style={{ fontSize: 14, fontWeight: 500 }}> /mo</span>
+        </div>
+      </div>
+      <ul style={st.priceList}>{features.map((f, i) => <li key={i}>{f}</li>)}</ul>
+      <a href={href} style={{ ...st.btnPrimary, textAlign: "center" }}>{cta}</a>
+    </div>
+  );
+}
+function Logo({ text }) {
+  return (
+    <div style={st.logoChip}>
+      <span style={st.logoMark} />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+/* --- Styles --- */
+const st = {
+  page: { fontFamily: "Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif", color: "#111", background: "linear-gradient(180deg,#fafafa,#fff)" },
+
+  nav: { position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid #eee", background: "rgba(255,255,255,0.7)", backdropFilter: "saturate(180%) blur(10px)" },
+  navInner: { maxWidth: 1140, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" },
+  brand: { display: "flex", alignItems: "center", gap: 10, color: "#111", textDecoration: "none" },
+  logoDot: { width: 18, height: 18, borderRadius: 6, background: "#111", display: "inline-block" },
+  navLinks: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" },
+  link: { color: "#444", textDecoration: "none", fontSize: 14 },
+  navCta: { padding: "8px 12px", borderRadius: 10, background: "#111", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700 },
+
+  heroWrap: { position: "relative", overflow: "hidden" },
+  heroBg1: { position: "absolute", inset: 0, background: "radial-gradient(800px 320px at 5% 0%, #ecf3ff 0%, transparent 60%)", zIndex: 0 },
+  heroBg2: { position: "absolute", inset: 0, background: "radial-gradient(800px 320px at 95% 0%, #ffecef 0%, transparent 60%)", zIndex: 0 },
+  hero: { position: "relative", zIndex: 1, maxWidth: 1140, margin: "0 auto", padding: "64px 16px 28px" },
+  h1: { fontSize: 44, lineHeight: 1.1, margin: 0, letterSpacing: -0.5 },
+  h1Accent: { background: "linear-gradient(90deg,#111,#666)", WebkitBackgroundClip: "text", color: "transparent" },
+  heroSub: { marginTop: 14, fontSize: 18, color: "#5f6368" },
+  heroCtas: { display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" },
+  ctaPrimary: { padding: "12px 18px", borderRadius: 12, background: "#111", color: "#fff", textDecoration: "none", fontWeight: 800 },
+  ctaSecondary: { padding: "12px 18px", borderRadius: 12, background: "#fff", border: "1px solid #eee", color: "#111", textDecoration: "none", fontWeight: 700 },
+
+  mockWrap: { marginTop: 36 },
+  mockCard: { border: "1px solid #eee", borderRadius: 16, overflow: "hidden", background: "#fff", boxShadow: "0 12px 40px rgba(0,0,0,0.08)" },
+  mockTop: { height: 36, display: "flex", alignItems: "center", gap: 6, padding: "0 12px", borderBottom: "1px solid #f1f3f4" },
+  winDot: { width: 10, height: 10, borderRadius: 6, background: "#e0e0e0", display: "inline-block" },
+  mockBody: { display: "grid", gridTemplateColumns: "220px 1fr", minHeight: 340 },
+  mockSide: { padding: 16, borderRight: "1px solid #f1f3f4", background: "#fafafa" },
+  badge: { display: "inline-block", fontSize: 11, padding: "4px 8px", borderRadius: 999, background: "#eef2ff", color: "#3730a3", fontWeight: 800, marginBottom: 8 },
+  sideList: { listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10, color: "#3c4043", fontSize: 14 },
+  mockCanvas: { display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: 304 },
+  mockBefore: { display: "grid", placeItems: "center", borderRight: "1px solid #f1f3f4", color: "#9aa0a6", background: "linear-gradient(180deg,#fff,#f8f9fa)" },
+  mockAfter: { display: "grid", placeItems: "center", color: "#34a853", background: "linear-gradient(180deg,#f8fff8,#f3fff5)" },
+
+  section: { maxWidth: 1140, margin: "0 auto", padding: "56px 16px" },
+  sectionAlt: { maxWidth: 1140, margin: "0 auto", padding: "56px 16px", background: "linear-gradient(180deg,#fcfcff,#ffffff)" },
+  kicker: { textAlign: "center", color: "#5f6368", margin: "0 0 8px" },
+  logoRow: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, alignItems: "center" },
+
+  logoChip: { border: "1px solid #eee", borderRadius: 999, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, justifyContent: "center", background: "#fff" },
+  logoMark: { width: 6, height: 6, borderRadius: 8, background: "#111", display: "inline-block" },
+
+  h2: { fontSize: 28, margin: 0, textAlign: "center" },
+  sub: { marginTop: 8, textAlign: "center", color: "#5f6368" },
+
+  grid3: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginTop: 24 },
+
+  card: { border: "1px solid #eee", borderRadius: 14, padding: 18, background: "#fff" },
+  cardTitle: { margin: 0, fontSize: 16, letterSpacing: 0.2 },
+  cardDesc: { marginTop: 8, color: "#5f6368", fontSize: 14 },
+
+  priceCard: { border: "1px solid #eee", borderRadius: 14, padding: 18, background: "#fff", display: "flex", flexDirection: "column", gap: 12 },
+  priceCardHi: { outline: "2px solid #111", boxShadow: "0 14px 50px rgba(0,0,0,0.08)" },
+  priceHead: { display: "flex", alignItems: "baseline", justifyContent: "space-between" },
+  priceList: { margin: 0, paddingLeft: 18, color: "#3c4043", lineHeight: 1.8, flexGrow: 1 },
+
+  btnPrimary: { padding: "12px 18px", borderRadius: 12, background: "#111", color: "#fff", textDecoration: "none", fontWeight: 800 },
+
+  ctaBanner: { background: "linear-gradient(90deg,#111,#333)", color: "#fff" },
+  ctaInner: { maxWidth: 1140, margin: "0 auto", padding: "18px 16px", display: "flex", gap: 16, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" },
+
+  faqList: { maxWidth: 900, margin: "16px auto 0", display: "grid", gap: 12 },
+  faqItem: { border: "1px solid #eee", borderRadius: 12, padding: "10px 14px", background: "#fff" },
+  faqSummary: { cursor: "pointer", fontWeight: 700 },
+  faqAnswer: { marginTop: 8, color: "#5f6368" },
+
+  footer: { borderTop: "1px solid #eee", marginTop: 40, background: "#fff" },
+  footerInner: { maxWidth: 1140, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr auto auto", gap: 16, alignItems: "center" },
+  footerLink: { color: "#444", textDecoration: "none", fontSize: 14 },
+};
+
+const css = `
+@media (max-width: 980px) {
+  /* make 3-col grids single column on mobile */
+  .grid3 { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 980px) {
+  /* collapse logo row */
+  .logoRow { grid-template-columns: repeat(2,1fr) !important; }
+}
+/* The inline styles above are primary; these classes are just helpers for responsiveness. */
+`;
