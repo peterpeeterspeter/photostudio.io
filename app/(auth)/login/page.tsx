@@ -11,7 +11,7 @@ export default function LoginPage() {
   async function magicLink() {
     const { error } = await supabase.auth.signInWithOtp({ 
       email, 
-      options: { emailRedirectTo: `${location.origin}` } 
+      options: { emailRedirectTo: `${location.origin}/auth/callback` } 
     });
     setMsg(error ? error.message : 'Check your email for a login link.');
   }
@@ -19,7 +19,7 @@ export default function LoginPage() {
   async function google() {
     await supabase.auth.signInWithOAuth({ 
       provider: 'google', 
-      options: { redirectTo: `${location.origin}` } 
+      options: { redirectTo: `${location.origin}/auth/callback` } 
     });
   }
 
