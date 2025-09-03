@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
-import { supabaseService, supabaseAnon } from '../../../../lib/supabase.js';
+import { supabaseService, supabaseAnon } from '../../../../lib/supabase';
 
-export async function GET(req) {
+export async function GET(req: Request) {
   try {
     const sb = supabaseService();
     const url = new URL(req.url);
@@ -43,12 +43,12 @@ export async function GET(req) {
           .createSignedUrl(item.source_path, 60 * 10);
           
         // Output image URL (if exists)
-        let outputUrl = null;
+        let outputUrl: string | null = null;
         if (item.output_path) {
           const outputResult = await anon.storage
             .from('outputs')
             .createSignedUrl(item.output_path, 60 * 10);
-          outputUrl = outputResult.data?.signedUrl;
+          outputUrl = outputResult.data?.signedUrl || null;
         }
         
         return {
@@ -86,7 +86,7 @@ export async function GET(req) {
       }
     });
     
-  } catch (e) {
+  } catch (e: any) {
     console.error('batch/status error:', e);
     return Response.json({ 
       error: e?.message || 'Failed to get batch status' 

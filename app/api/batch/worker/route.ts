@@ -1,15 +1,15 @@
 export const runtime = 'nodejs';
-import { supabaseService, supabaseAnon } from '../../../../lib/supabase.js';
-import { birefnetCutout, geminiEditPng, relightOrShadow } from '../../../../lib/pipeline.js';
+import { supabaseService, supabaseAnon } from '../../../../lib/supabase';
+import { birefnetCutout, geminiEditPng, relightOrShadow } from '../../../../lib/pipeline';
 
-async function downloadFromStorage(path) {
+async function downloadFromStorage(path: string): Promise<Uint8Array> {
   const sb = supabaseService();
   const { data, error } = await sb.storage.from('uploads').download(path);
   if (error) throw error;
   return new Uint8Array(await data.arrayBuffer());
 }
 
-async function uploadOutput(batchId, buf) {
+async function uploadOutput(batchId: string, buf: Buffer): Promise<string> {
   const sb = supabaseService();
   const key = `outputs/${batchId}/${crypto.randomUUID()}.png`;
   const { error } = await sb.storage
@@ -22,7 +22,7 @@ async function uploadOutput(batchId, buf) {
   return key;
 }
 
-export async function GET(req) {
+export async function GET(req: Request) {
   const url = new URL(req.url);
   const batchId = url.searchParams.get('batch');
   const prompt = url.searchParams.get('prompt') || 'Ghost mannequin on neutral background';
@@ -105,7 +105,7 @@ export async function GET(req) {
       
       console.log(`Completed processing ${img.id}`);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Failed to process image ${img.id}:`, err);
       await sb.from('images').update({ 
         status: 'error', 

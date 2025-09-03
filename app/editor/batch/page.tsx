@@ -8,15 +8,44 @@ const PRESETS = {
   "Flatlay Marble": "Transform into a top-down flatlay on white marble. Neatly arrange the item centered, subtle soft shadows, accurate texture."
 };
 
-export default function BatchEditor() {
-  const [files, setFiles] = useState([]);
-  const [prompt, setPrompt] = useState('Ghost mannequin on neutral #f6f6f6 background.');
-  const [batchId, setBatchId] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const fileInputRef = useRef(null);
+interface BatchItem {
+  id: string;
+  status: 'queued' | 'working' | 'done' | 'error';
+  source_url?: string;
+  output_url?: string;
+  error?: string;
+}
 
-  const handleFilesChange = (newFiles) => {
+interface BatchStatus {
+  batch: {
+    id: string;
+    name: string;
+    status: string;
+    created_at: string;
+    completed_at?: string;
+  };
+  items: BatchItem[];
+  progress: {
+    total: number;
+    completed: number;
+    failed: number;
+    processing: number;
+    queued: number;
+    percentage: number;
+  };
+}
+
+export default function BatchEditor() {
+  const [files, setFiles] = useState<File[]>([]);
+  const [prompt, setPrompt] = useState<string>('Ghost mannequin on neutral #f6f6f6 background.');
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [status, setStatus] = useState<BatchStatus | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFilesChange = (newFiles: FileList | null) => {
+    if (!newFiles) return;
+    
     const validFiles = Array.from(newFiles).filter(file => {
       if (!file.type.startsWith('image/')) return false;
       if (file.size > 18 * 1024 * 1024) return false; // 18MB limit
@@ -31,7 +60,7 @@ export default function BatchEditor() {
     setFiles(prev => [...prev, ...validFiles]);
   };
 
-  const removeFile = (index) => {
+  const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 

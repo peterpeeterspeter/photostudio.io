@@ -57,8 +57,8 @@ export default function Home() {
             background swaps, ghost mannequin, flatlays, lifestyle scenes, and virtual try-on.
           </p>
           <div style={st.heroCtas}>
-            <a href="/editor" style={st.ctaPrimary}>Try the Editor</a>
-            <a href="#pricing" style={st.ctaSecondary}>See Pricing</a>
+            <a href="/editor" style={st.ctaPrimary}>Single Editor</a>
+            <a href="/editor/batch" style={st.ctaSecondary}>Batch Editor</a>
           </div>
 
           {/* Mock panel */}
@@ -172,7 +172,10 @@ export default function Home() {
               Try the editor now — no credit card required.
             </p>
           </div>
-          <a href="/editor" style={st.ctaPrimary}>Open the Editor</a>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <a href="/editor" style={st.ctaPrimary}>Single Editor</a>
+            <a href="/editor/batch" style={st.ctaSecondary}>Batch Editor</a>
+          </div>
         </div>
       </section>
 

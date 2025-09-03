@@ -1,17 +1,13 @@
 export const runtime = 'nodejs';
-import { supabaseService } from '../../../../lib/supabase.js';
+import { supabaseService } from '../../../../lib/supabase';
 
-function b64(buf) { 
-  return Buffer.from(new Uint8Array(buf)).toString('base64'); 
-}
-
-export async function POST(req) {
+export async function POST(req: Request) {
   try {
     const form = await req.formData();
     const name = String(form.get('name') || 'Untitled Batch');
     const prompt = String(form.get('prompt') || 'Ghost mannequin on neutral #f6f6f6 background.');
 
-    const files = form.getAll('images').filter((f) => f instanceof Blob);
+    const files = form.getAll('images').filter((f): f is File => f instanceof File);
     if (!files.length) {
       return Response.json({ error: 'No files provided' }, { status: 400 });
     }
@@ -32,7 +28,7 @@ export async function POST(req) {
     if (batchError) throw batchError;
 
     // Save uploads to storage and create image rows
-    const imageRows = [];
+    const imageRows: any[] = [];
     for (let i = 0; i < files.length; i++) {
       const blob = files[i];
       const ext = blob.type.includes('png') ? 'png' : 'jpg';
@@ -82,7 +78,7 @@ export async function POST(req) {
       message: `Batch created with ${imageRows.length} images queued for processing`
     });
     
-  } catch (e) {
+  } catch (e: any) {
     console.error('batch/create error:', e);
     return Response.json({ 
       error: e?.message || 'Server error' 
