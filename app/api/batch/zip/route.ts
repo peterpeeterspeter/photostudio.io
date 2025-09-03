@@ -2,10 +2,11 @@
 export const runtime = 'nodejs';
 import { NextRequest } from 'next/server';
 import { supabaseService, supabaseAnon } from '@/lib/supabase';
+import type { Archiver } from 'archiver';
 
 export async function GET(req: NextRequest) {
-  // dynamic import avoids type complaints when no d.ts is present
-  const { default: archiver }: any = await import('archiver');
+  // Import archiver with proper typing
+  const archiver = (await import('archiver')).default;
 
   const url = new URL(req.url);
   const batchId = url.searchParams.get('batch');

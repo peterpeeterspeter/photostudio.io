@@ -4,7 +4,8 @@ import { stripe, PRICES } from '@/lib/stripe';
 import { supabaseService } from '@/lib/supabase';
 
 export async function POST(req: Request) {
-  const sig = headers().get('stripe-signature')!;
+  const headersList = await headers();
+  const sig = headersList.get('stripe-signature')!;
   const buf = Buffer.from(await req.arrayBuffer());
 
   let event: any;
@@ -28,11 +29,11 @@ export async function POST(req: Request) {
       if (userId) {
         // Determine plan from the subscription's price lookup
         const sub = await stripe.subscriptions.retrieve(s.subscription as string);
-        const priceId = sub.items.data[0].price.id;
+        const priceId = sub.items.data[0]?.price?.id;
         const plan = priceId === PRICES.pro_monthly ? 'pro' : priceId === PRICES.agency_monthly ? 'agency' : 'free';
         await sb.from('profiles').update({ 
           plan, 
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString() 
+          current_period_end: new Date((sub as any).current_period_end * 1000).toISOString() 
         }).eq('id', userId);
       }
       break;
@@ -46,11 +47,11 @@ export async function POST(req: Request) {
       const userId = rows?.[0]?.id;
       
       if (userId) {
-        const priceId = sub.items.data[0].price.id;
+        const priceId = sub.items.data[0]?.price?.id;
         const plan = priceId === PRICES.pro_monthly ? 'pro' : priceId === PRICES.agency_monthly ? 'agency' : 'free';
         await sb.from('profiles').update({ 
           plan, 
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString() 
+          current_period_end: new Date((sub as any).current_period_end * 1000).toISOString() 
         }).eq('id', userId);
       }
       break;
