@@ -69,7 +69,7 @@ export default function AccountClient() {
             .from("profiles")
             .insert({ id: u.id, email: u.email });
           if (insErr) throw insErr;
-          setProfile({ id: u.id, email: u.email, plan: "free", current_period_end: null, stripe_customer_id: null });
+          setProfile({ id: u.id, email: u.email ?? null, plan: "free", current_period_end: null, stripe_customer_id: null });
         } else {
           setProfile(prof as Profile);
         }
