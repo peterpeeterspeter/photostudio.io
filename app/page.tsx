@@ -2,15 +2,15 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default function Home() {
   // FAQ state
-  const [faqOpen, setFaqOpen] = useState(0);
+  const [faqOpen, setFaqOpen] = useState<number | null>(0);
   
   // Auth state
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     // Get initial user
@@ -187,7 +187,7 @@ export default function Home() {
                    "2 presets included",
                    "Up to 5 images / month",
                  ]}
-                 href="/editor" cta="Start Free" />
+                 href="/editor" cta="Start Free" highlight={false} />
           <Price name="Pro" price="€39" highlight
                  features={[
                    "High-res exports",
@@ -203,7 +203,7 @@ export default function Home() {
                    "Team seats & roles",
                    "Priority support",
                  ]}
-                 href="mailto:hello@photostudio.io" cta="Contact Sales" />
+                 href="mailto:hello@photostudio.io" cta="Contact Sales" highlight={false} />
         </div>
       </section>
 
@@ -231,7 +231,7 @@ export default function Home() {
             <details
               key={i}
               open={faqOpen === i}
-              onToggle={(e) => setFaqOpen(e.currentTarget.open ? i : null)}
+              onToggle={(e: any) => setFaqOpen(e.currentTarget.open ? i : null)}
               style={st.faqItem}
             >
               <summary style={st.faqSummary}>{f.q}</summary>
@@ -267,7 +267,7 @@ export default function Home() {
 }
 
 /* --- Small, reusable atoms --- */
-function Card({ title, desc }) {
+function Card({ title, desc }: { title: string; desc: string }) {
   return (
     <div style={st.card}>
       <h3 style={st.cardTitle}>{title}</h3>
@@ -275,7 +275,7 @@ function Card({ title, desc }) {
     </div>
   );
 }
-function Integr({ title, desc }) {
+function Integr({ title, desc }: { title: string; desc: string }) {
   return (
     <div style={st.card}>
       <h3 style={st.cardTitle}>{title}</h3>
@@ -285,6 +285,13 @@ function Integr({ title, desc }) {
 }
 function Price({
   name, price, features, href, cta, highlight,
+}: {
+  name: string;
+  price: string;
+  features: string[];
+  href: string;
+  cta: string;
+  highlight?: boolean;
 }) {
   return (
     <div style={{ ...st.priceCard, ...(highlight ? st.priceCardHi : {}) }}>
@@ -294,12 +301,12 @@ function Price({
           <span style={{ fontSize: 14, fontWeight: 500 }}> /mo</span>
         </div>
       </div>
-      <ul style={st.priceList}>{features.map((f, i) => <li key={i}>{f}</li>)}</ul>
+      <ul style={st.priceList}>{features.map((f: string, i: number) => <li key={i}>{f}</li>)}</ul>
       <a href={href} style={{ ...st.btnPrimary, textAlign: "center" }}>{cta}</a>
     </div>
   );
 }
-function Logo({ text }) {
+function Logo({ text }: { text: string }) {
   return (
     <div style={st.logoChip}>
       <span style={st.logoMark} />
@@ -312,22 +319,22 @@ function Logo({ text }) {
 const st = {
   page: { fontFamily: "Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif", color: "#111", background: "linear-gradient(180deg,#fafafa,#fff)" },
 
-  nav: { position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid #eee", background: "rgba(255,255,255,0.7)", backdropFilter: "saturate(180%) blur(10px)" },
+  nav: { position: "sticky" as const, top: 0, zIndex: 50, borderBottom: "1px solid #eee", background: "rgba(255,255,255,0.7)", backdropFilter: "saturate(180%) blur(10px)" },
   navInner: { maxWidth: 1140, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" },
   brand: { display: "flex", alignItems: "center", gap: 10, color: "#111", textDecoration: "none" },
   logoDot: { width: 18, height: 18, borderRadius: 6, background: "#111", display: "inline-block" },
-  navLinks: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" },
+  navLinks: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" as const },
   link: { color: "#444", textDecoration: "none", fontSize: 14 },
   navCta: { padding: "8px 12px", borderRadius: 10, background: "#111", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 700 },
 
-  heroWrap: { position: "relative", overflow: "hidden" },
-  heroBg1: { position: "absolute", inset: 0, background: "radial-gradient(800px 320px at 5% 0%, #ecf3ff 0%, transparent 60%)", zIndex: 0 },
-  heroBg2: { position: "absolute", inset: 0, background: "radial-gradient(800px 320px at 95% 0%, #ffecef 0%, transparent 60%)", zIndex: 0 },
-  hero: { position: "relative", zIndex: 1, maxWidth: 1140, margin: "0 auto", padding: "64px 16px 28px" },
+  heroWrap: { position: "relative" as const, overflow: "hidden" },
+  heroBg1: { position: "absolute" as const, inset: 0, background: "radial-gradient(800px 320px at 5% 0%, #ecf3ff 0%, transparent 60%)", zIndex: 0 },
+  heroBg2: { position: "absolute" as const, inset: 0, background: "radial-gradient(800px 320px at 95% 0%, #ffecef 0%, transparent 60%)", zIndex: 0 },
+  hero: { position: "relative" as const, zIndex: 1, maxWidth: 1140, margin: "0 auto", padding: "64px 16px 28px" },
   h1: { fontSize: 44, lineHeight: 1.1, margin: 0, letterSpacing: -0.5 },
   h1Accent: { background: "linear-gradient(90deg,#111,#666)", WebkitBackgroundClip: "text", color: "transparent" },
   heroSub: { marginTop: 14, fontSize: 18, color: "#5f6368" },
-  heroCtas: { display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" },
+  heroCtas: { display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" as const },
   ctaPrimary: { padding: "12px 18px", borderRadius: 12, background: "#111", color: "#fff", textDecoration: "none", fontWeight: 800 },
   ctaSecondary: { padding: "12px 18px", borderRadius: 12, background: "#fff", border: "1px solid #eee", color: "#111", textDecoration: "none", fontWeight: 700 },
 
@@ -345,14 +352,14 @@ const st = {
 
   section: { maxWidth: 1140, margin: "0 auto", padding: "56px 16px" },
   sectionAlt: { maxWidth: 1140, margin: "0 auto", padding: "56px 16px", background: "linear-gradient(180deg,#fcfcff,#ffffff)" },
-  kicker: { textAlign: "center", color: "#5f6368", margin: "0 0 8px" },
+  kicker: { textAlign: "center" as const, color: "#5f6368", margin: "0 0 8px" },
   logoRow: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, alignItems: "center" },
 
   logoChip: { border: "1px solid #eee", borderRadius: 999, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, justifyContent: "center", background: "#fff" },
   logoMark: { width: 6, height: 6, borderRadius: 8, background: "#111", display: "inline-block" },
 
-  h2: { fontSize: 28, margin: 0, textAlign: "center" },
-  sub: { marginTop: 8, textAlign: "center", color: "#5f6368" },
+  h2: { fontSize: 28, margin: 0, textAlign: "center" as const },
+  sub: { marginTop: 8, textAlign: "center" as const, color: "#5f6368" },
 
   grid3: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginTop: 24 },
 
@@ -360,7 +367,7 @@ const st = {
   cardTitle: { margin: 0, fontSize: 16, letterSpacing: 0.2 },
   cardDesc: { marginTop: 8, color: "#5f6368", fontSize: 14 },
 
-  priceCard: { border: "1px solid #eee", borderRadius: 14, padding: 18, background: "#fff", display: "flex", flexDirection: "column", gap: 12 },
+  priceCard: { border: "1px solid #eee", borderRadius: 14, padding: 18, background: "#fff", display: "flex", flexDirection: "column" as const, gap: 12 },
   priceCardHi: { outline: "2px solid #111", boxShadow: "0 14px 50px rgba(0,0,0,0.08)" },
   priceHead: { display: "flex", alignItems: "baseline", justifyContent: "space-between" },
   priceList: { margin: 0, paddingLeft: 18, color: "#3c4043", lineHeight: 1.8, flexGrow: 1 },
@@ -368,7 +375,7 @@ const st = {
   btnPrimary: { padding: "12px 18px", borderRadius: 12, background: "#111", color: "#fff", textDecoration: "none", fontWeight: 800 },
 
   ctaBanner: { background: "linear-gradient(90deg,#111,#333)", color: "#fff" },
-  ctaInner: { maxWidth: 1140, margin: "0 auto", padding: "18px 16px", display: "flex", gap: 16, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" },
+  ctaInner: { maxWidth: 1140, margin: "0 auto", padding: "18px 16px", display: "flex", gap: 16, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const },
 
   faqList: { maxWidth: 900, margin: "16px auto 0", display: "grid", gap: 12 },
   faqItem: { border: "1px solid #eee", borderRadius: 12, padding: "10px 14px", background: "#fff" },
