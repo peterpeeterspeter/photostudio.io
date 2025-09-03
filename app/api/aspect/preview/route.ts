@@ -1,13 +1,13 @@
 export const runtime = 'nodejs';
 import { NextRequest } from 'next/server';
-import { exportAspect } from '../../../../lib/aspect';
+import { exportAspect, RatioKey, Format } from '../../../../lib/aspect';
 
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
     const image = form.get('image');
-    const ratio = String(form.get('ratio') || '1:1') as any;
-    const format = String(form.get('format') || 'png') as any;
+    const ratio = String(form.get('ratio') || '1:1') as RatioKey;
+    const format = String(form.get('format') || 'png') as Format;
     const width = Number(form.get('width') || 2048);
     const background = String(form.get('background') || '#ffffff');
     const mode = String(form.get('mode') || 'contain'); // contain | cover

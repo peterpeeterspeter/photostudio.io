@@ -1,25 +1,17 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Allow all hosts for Replit environment
-  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
-  // Experimental features for Next.js 15+
-  experimental: {
-    allowedDevOrigins: ['*'],
-  },
-  // Fix cross-origin warnings
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-        ],
-      },
-    ]
-  },
-}
+const isDev = process.env.NODE_ENV !== 'production';
 
-module.exports = nextConfig
+const nextConfig = {
+  experimental: isDev
+    ? {
+        allowedDevOrigins: [
+          'http://localhost:5000',
+          'http://0.0.0.0:5000',
+          'https://*.replit.dev',
+          'https://*.replit.app',
+        ],
+      }
+    : {},
+};
+
+module.exports = nextConfig;
