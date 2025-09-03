@@ -21,9 +21,16 @@ Preferred communication style: Simple, everyday language.
 - **Error Handling**: Comprehensive validation for file types, sizes, and content restrictions
 
 ## Image Processing Pipeline
-- **AI Integration**: Google Gemini 2.5 Flash Image Preview model for advanced image editing
+- **Dual Processing Modes**: Standard single-shot editing (2-5 seconds) and Advanced multi-stage pipeline (30-60 seconds)
+- **Standard Mode**: Google Gemini 2.5 Flash Image Preview model for fast AI editing
+- **Advanced Pipeline**: Multi-stage processing chain:
+  1. Background removal with fal.ai BiRefNet for clean alpha masks
+  2. Primary AI editing with Gemini 2.5 Flash Image
+  3. Background harmonization using fal.ai Flux models for lighting consistency
+  4. Upscaling with Real-ESRGAN via Replicate API for 2x-4x quality enhancement
+- **Batch Processing**: Async queue system for processing up to 25 images with webhook support
 - **Prompt Engineering**: Preset-based prompt system with built-in guardrails for garment accuracy
-- **Output Format**: Base64-encoded image responses converted to blob URLs for client display
+- **Output Format**: Base64-encoded or URL-based image responses with quality optimization
 - **Quality Assurance**: Automatic inclusion of fabric texture preservation, color accuracy, and proportion maintenance instructions
 
 ## Security and Compliance
@@ -37,7 +44,10 @@ Preferred communication style: Simple, everyday language.
 ## AI Services
 - **Google Gemini AI**: Primary image processing engine using the `@google/genai` package
 - **Model**: Gemini 2.5 Flash Image Preview for fashion-specific image editing capabilities
-- **Authentication**: Google Auth Library integration for API access
+- **fal.ai Integration**: Advanced background removal (BiRefNet), harmonization, and specialized models via `@fal-ai/serverless-client`
+- **Replicate API**: High-quality image upscaling with Real-ESRGAN for post-processing enhancement
+- **Webhook Support**: Async processing capabilities for batch operations and real-time status updates
+- **Authentication**: Secure API key management for all integrated services
 
 ## Development Dependencies
 - **Next.js**: React framework for full-stack development

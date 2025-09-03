@@ -22,6 +22,8 @@ export default function Page() {
   const [error, setError] = useState(null);
   const [resultUrl, setResultUrl] = useState(null);
   const [showWatermark, setShowWatermark] = useState(true);
+  const [pipelineMode, setPipelineMode] = useState("standard");
+  const [processingStage, setProcessingStage] = useState("");
 
   const inputRef = useRef(null);
 
@@ -53,27 +55,47 @@ export default function Page() {
     setLoading(true);
     setError(null);
     setResultUrl(null);
+    setProcessingStage("");
 
     try {
       const fd = new FormData();
       fd.append("image", file);
       fd.append("prompt", prompt);
+      fd.append("pipelineMode", pipelineMode);
 
-      const res = await fetch("/api/edit", {
+      // Choose API endpoint based on pipeline mode
+      const apiEndpoint = pipelineMode === "advanced" ? "/api/pipeline" : "/api/edit";
+      
+      if (pipelineMode === "advanced") {
+        setProcessingStage("Starting multi-stage processing...");
+      }
+
+      const res = await fetch(apiEndpoint, {
         method: "POST",
         body: fd,
       });
 
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
+        if (j?.quotaError) {
+          throw new Error("API quota exceeded. Please try again in a few minutes or check your API plan at https://ai.google.dev/");
+        }
         throw new Error(j?.error || `Request failed (${res.status})`);
       }
 
-      // Server returns { dataUrl: "data:image/png;base64,..." }
-      const { dataUrl } = await res.json();
-      setResultUrl(dataUrl);
+      const responseData = await res.json();
+      
+      if (pipelineMode === "advanced") {
+        // Advanced pipeline returns { image: url, message: string }
+        setResultUrl(responseData.image);
+        setProcessingStage(responseData.message || "Processing completed");
+      } else {
+        // Standard returns { dataUrl: "data:image/png;base64,..." }
+        setResultUrl(responseData.dataUrl);
+      }
     } catch (e) {
       setError(e?.message || "Something went wrong.");
+      setProcessingStage("");
     } finally {
       setLoading(false);
     }
@@ -138,7 +160,40 @@ export default function Page() {
           </div>
 
           <div className="rounded-2xl border bg-white p-4 shadow-sm">
-            <h2 className="text-base font-semibold mb-3">2) Pick a preset or write your own prompt</h2>
+            <h2 className="text-base font-semibold mb-3">2) Choose processing mode</h2>
+            <div className="mb-4">
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setPipelineMode("standard")}
+                  className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                    pipelineMode === "standard" 
+                      ? "bg-black text-white" 
+                      : "border bg-white text-neutral-600 hover:bg-neutral-50"
+                  }`}
+                >
+                  Standard Mode
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPipelineMode("advanced")}
+                  className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                    pipelineMode === "advanced" 
+                      ? "bg-black text-white" 
+                      : "border bg-white text-neutral-600 hover:bg-neutral-50"
+                  }`}
+                >
+                  Advanced Pipeline
+                </button>
+              </div>
+              <p className="text-xs text-neutral-500">
+                {pipelineMode === "standard" 
+                  ? "Fast single-shot editing with Gemini AI (2-5 seconds)"
+                  : "Multi-stage processing: background removal → AI editing → harmonization → upscaling (30-60 seconds)"
+                }
+              </p>
+            </div>
+            <h3 className="text-sm font-medium mb-3">Pick a preset or write your own prompt</h3>
             <div className="flex flex-wrap gap-2 mb-3">
               {Object.entries(PRESETS).map(([name, text]) => (
                 <button
@@ -175,11 +230,17 @@ export default function Page() {
                 disabled={loading}
                 className="rounded-xl bg-black px-4 py-2 text-white text-sm disabled:opacity-50"
               >
-                {loading ? "Processing…" : "Generate Edited Image"}
+                {loading 
+                  ? (pipelineMode === "advanced" ? "Multi-stage Processing…" : "Processing…")
+                  : `Generate with ${pipelineMode === "advanced" ? "Advanced Pipeline" : "Standard Mode"}`
+                }
               </button>
             </div>
             {error && (
               <p className="mt-2 text-sm text-red-600">{error}</p>
+            )}
+            {processingStage && (
+              <p className="mt-2 text-sm text-blue-600">{processingStage}</p>
             )}
           </div>
         </section>
@@ -189,7 +250,13 @@ export default function Page() {
           <h2 className="text-base font-semibold mb-3">3) Preview</h2>
           {!resultUrl ? (
             <div className="h-[24rem] grid place-items-center text-neutral-400 text-sm">
-              {loading ? "Editing with Nano Banana…" : "Your edited image will appear here."}
+              {loading 
+                ? (pipelineMode === "advanced" 
+                   ? (processingStage || "Multi-stage processing in progress...")
+                   : "Editing with AI..."
+                  )
+                : "Your edited image will appear here."
+              }
             </div>
           ) : (
             <div className="relative">
