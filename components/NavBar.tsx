@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import clsx from "clsx";
 
 const links = [
   { href: "/", label: "Home", startsWith: "/" },
@@ -10,10 +11,6 @@ const links = [
   { href: "/integrations/shopify", label: "Shopify", startsWith: "/integrations" },
   { href: "/account", label: "Account", startsWith: "/account" },
 ];
-
-function clsx(...classes: (string | boolean | undefined)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
 
 export function NavBar() {
   const pathname = usePathname();
