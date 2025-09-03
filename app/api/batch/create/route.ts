@@ -1,6 +1,6 @@
 export const runtime = 'nodejs';
 import { supabaseService } from '../../../../lib/supabase';
-import type { ExportItem } from '../../../../lib/resize';
+import type { ExportItem, BatchSettings } from '../../../../lib/resize';
 
 export async function POST(req: Request) {
   try {
@@ -8,8 +8,8 @@ export async function POST(req: Request) {
     const name = String(form.get('name') || 'Untitled Batch');
     const prompt = String(form.get('prompt') || 'Ghost mannequin on neutral #f6f6f6 background.');
 
-    // Parse settings for presets and custom variants
-    let settings: { presets?: string[]; variants?: ExportItem[] } = {};
+    // Parse settings for presets, packs, and custom variants
+    let settings: BatchSettings = {};
     const rawSettings = form.get('settings');
     if (typeof rawSettings === 'string') {
       try {

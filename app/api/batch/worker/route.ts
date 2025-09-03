@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { supabaseService, supabaseAnon } from '../../../../lib/supabase';
 import { birefnetCutout, geminiEditPng, relightOrShadow } from '../../../../lib/pipeline';
-import { exportBatch, SOCIAL_PRESETS, type ExportItem } from '../../../../lib/resize';
+import { exportBatch, resolveSettings, type BatchSettings } from '../../../../lib/resize';
 
 async function downloadFromStorage(path: string): Promise<Uint8Array> {
   const sb = supabaseService();
@@ -103,33 +103,10 @@ export async function GET(req: Request) {
       // 6) Social preset exports based on batch settings
       console.log(`Generating social preset variants for ${img.id}...`);
       try {
-        // Get batch settings to determine which presets to generate
+        // Get batch settings and resolve to export items
         const { data: batchRow } = await sb.from('batches').select('settings').eq('id', batchId).single();
-        const settings = (batchRow?.settings || {}) as { presets?: string[]; variants?: ExportItem[] };
-        
-        let items: ExportItem[] = [];
-        
-        // Add selected social presets
-        if (settings.presets?.length) {
-          for (const p of settings.presets) {
-            if (SOCIAL_PRESETS[p]) {
-              items.push(...SOCIAL_PRESETS[p]);
-            }
-          }
-        }
-        
-        // Add custom variants
-        if (settings.variants?.length) {
-          items.push(...settings.variants);
-        }
-        
-        // Default fallback if no settings
-        if (!items.length) {
-          items = [
-            { label: 'IG-Post-1080', w: 1080, h: 1080, format: 'jpg', mode: 'cover' },
-            { label: 'Shopify-2048', w: 2048, h: 2048, format: 'png', mode: 'contain', background: '#ffffff' }
-          ];
-        }
+        const settings = (batchRow?.settings || {}) as BatchSettings;
+        const items = resolveSettings(settings);
         
         const outs = await exportBatch(relitBuffer, items);
         const variantMap: Record<string, string> = {};

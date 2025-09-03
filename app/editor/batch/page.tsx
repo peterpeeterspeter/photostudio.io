@@ -49,6 +49,12 @@ export default function BatchEditor() {
     Pinterest_Pin: false, 
     Shopify_Product: true 
   });
+  const [packs, setPacks] = useState<Record<string, boolean>>({
+    Instagram_Complete: false,
+    E_Commerce: true,
+    Social_Media_Full: false,
+    Content_Creator: false,
+  });
   const [custom, setCustom] = useState<{ 
     label: string; 
     w: number; 
@@ -99,10 +105,12 @@ export default function BatchEditor() {
     formData.append('name', `Batch ${new Date().toLocaleString()}`);
     formData.append('prompt', prompt);
     
-    // Add settings for presets and custom variants
+    // Add settings for presets, packs, and custom variants
     const chosenPresets = Object.entries(presets).filter(([_, v]) => v).map(([k]) => k);
+    const chosenPacks = Object.entries(packs).filter(([_, v]) => v).map(([k]) => k);
     const settings = { 
-      presets: chosenPresets, 
+      presets: chosenPresets,
+      packs: chosenPacks,
       variants: [custom] 
     };
     formData.append('settings', JSON.stringify(settings));
@@ -271,7 +279,22 @@ export default function BatchEditor() {
                 
                 {/* Social Presets Selection */}
                 <div className="mt-4 p-3 bg-neutral-50 rounded-lg">
-                  <h4 className="text-sm font-medium mb-3">Social Media Presets</h4>
+                  <h4 className="text-sm font-medium mb-3">Social Media Packs</h4>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {Object.keys(packs).map((pack) => (
+                      <label key={pack} className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                        <input 
+                          type="checkbox" 
+                          checked={packs[pack]} 
+                          onChange={() => setPacks({ ...packs, [pack]: !packs[pack] })}
+                          className="rounded"
+                        />
+                        <span>{pack.replace(/_/g, ' ')}</span>
+                      </label>
+                    ))}
+                  </div>
+                  
+                  <h4 className="text-sm font-medium mb-3 mt-4">Individual Presets</h4>
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     {Object.keys(presets).map((preset) => (
                       <label key={preset} className="flex items-center gap-2 text-sm">
@@ -333,7 +356,8 @@ export default function BatchEditor() {
                   />
                   
                   <p className="text-xs text-neutral-500 mt-2">
-                    Selected presets and custom size will be generated for each processed image.
+                    <strong>Packs</strong> expand into multiple formats automatically. 
+                    <strong>Individual presets</strong> and <strong>custom size</strong> will be generated for each processed image.
                   </p>
                 </div>
               </div>
@@ -354,16 +378,26 @@ export default function BatchEditor() {
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Batch Processing</h2>
-                <button
-                  onClick={() => {
-                    setBatchId(null);
-                    setStatus(null);
-                    setIsProcessing(false);
-                  }}
-                  className="text-sm text-neutral-600 hover:text-black"
-                >
-                  ← Create New Batch
-                </button>
+                <div className="flex gap-2">
+                  {status?.batch?.status === 'completed' && (
+                    <a
+                      href={`/api/batch/zip?batch=${batchId}`}
+                      className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                    >
+                      Download ZIP
+                    </a>
+                  )}
+                  <button
+                    onClick={() => {
+                      setBatchId(null);
+                      setStatus(null);
+                      setIsProcessing(false);
+                    }}
+                    className="text-sm text-neutral-600 hover:text-black"
+                  >
+                    ← Create New Batch
+                  </button>
+                </div>
               </div>
 
               {status && (
