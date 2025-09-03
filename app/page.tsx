@@ -119,14 +119,15 @@ export default function Home() {
             />
           </div>
           <div className="mt-12 flex justify-center gap-6">
-            <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow">
-              <div className="w-6 h-6 bg-green-500 rounded"></div>
-              <span className="text-sm font-medium">Shopify</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow">
-              <div className="w-6 h-6 bg-blue-500 rounded"></div>
-              <span className="text-sm font-medium">Powered by Google AI</span>
-            </div>
+            <span className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow">
+              Shopify App
+            </span>
+            <span className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow">
+              GDPR Ready
+            </span>
+            <span className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow">
+              Powered by Google AI
+            </span>
           </div>
         </div>
       </section>
