@@ -28,7 +28,7 @@ Preferred communication style: Simple, everyday language.
   2. Primary AI editing with Gemini 2.5 Flash Image
   3. Background harmonization using fal.ai Flux models for lighting consistency
   4. Upscaling with Real-ESRGAN via Replicate API for 2x-4x quality enhancement
-- **Batch Processing**: Async queue system for processing up to 25 images with webhook support
+- **Batch Processing**: Supabase-powered system for processing up to 25 images with database persistence and real-time status tracking
 - **Prompt Engineering**: Preset-based prompt system with built-in guardrails for garment accuracy
 - **Output Format**: Base64-encoded or URL-based image responses with quality optimization
 - **Quality Assurance**: Automatic inclusion of fabric texture preservation, color accuracy, and proportion maintenance instructions

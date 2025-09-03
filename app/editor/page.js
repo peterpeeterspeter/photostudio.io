@@ -107,9 +107,13 @@ export default function Page() {
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-xl bg-black" />
-            <h1 className="text-lg font-semibold">Photostudio.io — Boutique Editor</h1>
+            <h1 className="text-lg font-semibold">Photostudio.io — Single Editor</h1>
           </div>
-          <div className="text-xs text-neutral-500">Model: {MODEL_ID}</div>
+          <div className="flex gap-2 text-sm">
+            <span className="text-black font-medium">Single Editor</span>
+            <span className="text-neutral-300">|</span>
+            <a href="/editor/batch" className="text-neutral-600 hover:text-black">Batch Editor</a>
+          </div>
         </div>
       </header>
 
