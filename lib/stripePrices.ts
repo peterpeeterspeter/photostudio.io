@@ -1,7 +1,7 @@
 // lib/stripePrices.ts
 // Replace these with your real Stripe Price IDs
-export const PRICE_PRO_MONTHLY = process.env.STRIPE_PRICE_PRO_MONTHLY_ID || "price_pro_monthly_placeholder";
-export const PRICE_AGENCY_MONTHLY = process.env.STRIPE_PRICE_AGENCY_MONTHLY_ID || "price_agency_monthly_placeholder";
+export const PRICE_PRO_MONTHLY = process.env.STRIPE_PRICE_PRO_MONTHLY_ID || "prod_SzANa5uNuAkAPD";
+export const PRICE_AGENCY_MONTHLY = process.env.STRIPE_PRICE_AGENCY_MONTHLY_ID || "prod_SzANwjssPxiM0v";
 
 export function planForPriceId(priceId?: string | null) {
   if (!priceId) return "free";
