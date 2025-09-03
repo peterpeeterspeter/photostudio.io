@@ -3,7 +3,7 @@ import { createSupabaseServer } from '@/lib/supabase-server';
 import { stripe } from '@/lib/stripe';
 
 export async function POST() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response('Unauthorized', { status: 401 });
 
