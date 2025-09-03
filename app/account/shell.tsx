@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 
 type Profile = {
   id: string;
@@ -11,11 +11,6 @@ type Profile = {
   current_period_end: string | null;
   stripe_customer_id: string | null;
 };
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export default function AccountClient() {
   const [loading, setLoading] = useState(true);
