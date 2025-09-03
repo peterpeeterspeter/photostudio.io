@@ -1,148 +1,65 @@
+// app/api/batch/zip/route.ts
 export const runtime = 'nodejs';
 import { NextRequest } from 'next/server';
-import { supabaseService } from '../../../../lib/supabase';
-import archiver from 'archiver';
+import { supabaseService, supabaseAnon } from '@/lib/supabase';
 
 export async function GET(req: NextRequest) {
-  try {
-    const url = new URL(req.url);
-    const batchId = url.searchParams.get('batch');
-    const imageId = url.searchParams.get('image');
-    
-    if (!batchId) {
-      return new Response('Missing batch ID', { status: 400 });
-    }
+  // dynamic import avoids type complaints when no d.ts is present
+  const { default: archiver }: any = await import('archiver');
 
-    const sb = supabaseService();
-    
-    if (imageId) {
-      // Single image ZIP
-      const { data: image } = await sb
-        .from('images')
-        .select('*')
-        .eq('id', imageId)
-        .eq('batch_id', batchId)
-        .single();
-        
-      if (!image?.output_path) {
-        return new Response('Image not found or not processed', { status: 404 });
-      }
-      
-      return await createImageZip(sb, image, `image-${imageId}-variants.zip`);
-    } else {
-      // Batch ZIP
-      const { data: images } = await sb
-        .from('images')
-        .select('*')
-        .eq('batch_id', batchId)
-        .eq('status', 'done');
-        
-      if (!images?.length) {
-        return new Response('No completed images found', { status: 404 });
-      }
-      
-      return await createBatchZip(sb, images, batchId, `batch-${batchId}-export.zip`);
-    }
-    
-  } catch (e: any) {
-    console.error('ZIP generation error:', e);
-    return new Response(e?.message || 'ZIP generation failed', { status: 500 });
-  }
-}
+  const url = new URL(req.url);
+  const batchId = url.searchParams.get('batch');
+  const imageId = url.searchParams.get('image');
+  if (!batchId) return new Response('Missing batch', { status: 400 });
 
-async function createImageZip(sb: any, image: any, filename: string) {
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  
-  try {
-    const outputData = JSON.parse(image.output_path);
-    
-    // Add main image
-    if (outputData.main) {
-      const { data: mainFile } = await sb.storage.from('outputs').download(outputData.main);
-      if (mainFile) {
-        const mainBuffer = Buffer.from(await mainFile.arrayBuffer());
-        archive.append(mainBuffer, { name: `main.${outputData.main.endsWith('.png') ? 'png' : 'jpg'}` });
-      }
-    }
-    
-    // Add variants
-    if (outputData.variants) {
-      for (const [variantName, variantPath] of Object.entries(outputData.variants)) {
-        const { data: variantFile } = await sb.storage.from('outputs').download(variantPath as string);
-        if (variantFile) {
-          const variantBuffer = Buffer.from(await variantFile.arrayBuffer());
-          const ext = (variantPath as string).endsWith('.png') ? 'png' : 'jpg';
-          archive.append(variantBuffer, { name: `${variantName}.${ext}` });
-        }
-      }
-    }
-    
-  } catch (parseError) {
-    // Legacy format - single file path
-    const { data: file } = await sb.storage.from('outputs').download(image.output_path);
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      archive.append(buffer, { name: `result.${image.output_path.endsWith('.png') ? 'png' : 'jpg'}` });
-    }
-  }
+  const sb = supabaseService();
+  const { data: imgs, error } = await sb
+    .from('images')
+    .select('id, output_path')
+    .eq('batch_id', batchId)
+    .eq('status', 'done');
 
-  archive.finalize();
-  
-  return new Response(archive as any, {
-    headers: {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    },
-  });
-}
+  if (error) return new Response(error.message, { status: 500 });
 
-async function createBatchZip(sb: any, images: any[], batchId: string, filename: string) {
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  
-  for (let i = 0; i < images.length; i++) {
-    const image = images[i];
-    const imageFolder = `image-${i + 1}`;
-    
-    try {
-      const outputData = JSON.parse(image.output_path);
-      
-      // Add main image
-      if (outputData.main) {
-        const { data: mainFile } = await sb.storage.from('outputs').download(outputData.main);
-        if (mainFile) {
-          const mainBuffer = Buffer.from(await mainFile.arrayBuffer());
-          archive.append(mainBuffer, { name: `${imageFolder}/main.${outputData.main.endsWith('.png') ? 'png' : 'jpg'}` });
-        }
-      }
-      
-      // Add variants
-      if (outputData.variants) {
-        for (const [variantName, variantPath] of Object.entries(outputData.variants)) {
-          const { data: variantFile } = await sb.storage.from('outputs').download(variantPath as string);
-          if (variantFile) {
-            const variantBuffer = Buffer.from(await variantFile.arrayBuffer());
-            const ext = (variantPath as string).endsWith('.png') ? 'png' : 'jpg';
-            archive.append(variantBuffer, { name: `${imageFolder}/${variantName}.${ext}` });
+  const list = (imgs || []).filter(x => !imageId || x.id === imageId);
+  if (!list.length) return new Response('No completed images', { status: 404 });
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.on('data', (chunk: Uint8Array) => controller.enqueue(chunk));
+      archive.on('end', () => controller.close());
+      archive.on('warning', (e: any) => console.warn('zip warn', e));
+      archive.on('error', (e: any) => controller.error(e));
+
+      (async () => {
+        try {
+          const anon = supabaseAnon();
+          for (const it of list) {
+            let map: Record<string, string> = {};
+            try { map = JSON.parse(it.output_path || '{}'); } catch {}
+            for (const [label, storageKey] of Object.entries(map)) {
+              const { data: signed } = await anon.storage.from('outputs').createSignedUrl(storageKey, 600);
+              if (!signed?.signedUrl) continue;
+              const res = await fetch(signed.signedUrl);
+              const buf = Buffer.from(new Uint8Array(await res.arrayBuffer()));
+              const filename = `${it.id}/${label}${storageKey.endsWith('.png') ? '.png' : '.jpg'}`;
+              archive.append(buf, { name: filename });
+            }
           }
+          await archive.finalize();
+        } catch (e) {
+          console.error('zip error', e);
+          controller.error(e);
         }
-      }
-      
-    } catch (parseError) {
-      // Legacy format
-      const { data: file } = await sb.storage.from('outputs').download(image.output_path);
-      if (file) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        archive.append(buffer, { name: `${imageFolder}/result.${image.output_path.endsWith('.png') ? 'png' : 'jpg'}` });
-      }
+      })();
     }
-  }
+  });
 
-  archive.finalize();
-  
-  return new Response(archive as any, {
+  return new Response(stream as any, {
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    },
+      'Content-Disposition': `attachment; filename="photostudio-${batchId}${imageId ? '-' + imageId : ''}.zip"`
+    }
   });
 }
