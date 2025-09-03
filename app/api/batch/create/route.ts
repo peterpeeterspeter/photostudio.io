@@ -1,11 +1,23 @@
 export const runtime = 'nodejs';
 import { supabaseService } from '../../../../lib/supabase';
+import type { ExportItem } from '../../../../lib/resize';
 
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
     const name = String(form.get('name') || 'Untitled Batch');
     const prompt = String(form.get('prompt') || 'Ghost mannequin on neutral #f6f6f6 background.');
+
+    // Parse settings for presets and custom variants
+    let settings: { presets?: string[]; variants?: ExportItem[] } = {};
+    const rawSettings = form.get('settings');
+    if (typeof rawSettings === 'string') {
+      try {
+        settings = JSON.parse(rawSettings);
+      } catch (e) {
+        console.warn('Failed to parse settings:', e);
+      }
+    }
 
     const files = form.getAll('images').filter((f): f is File => f instanceof File);
     if (!files.length) {
@@ -18,10 +30,10 @@ export async function POST(req: Request) {
 
     const sb = supabaseService();
     
-    // Create batch record
+    // Create batch record with settings
     const { data: batch, error: batchError } = await sb
       .from('batches')
-      .insert({ name, status: 'pending' })
+      .insert({ name, status: 'pending', settings })
       .select('*')
       .single();
       

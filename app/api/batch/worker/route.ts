@@ -1,6 +1,7 @@
 export const runtime = 'nodejs';
 import { supabaseService, supabaseAnon } from '../../../../lib/supabase';
 import { birefnetCutout, geminiEditPng, relightOrShadow } from '../../../../lib/pipeline';
+import { exportBatch, SOCIAL_PRESETS, type ExportItem } from '../../../../lib/resize';
 
 async function downloadFromStorage(path: string): Promise<Uint8Array> {
   const sb = supabaseService();
@@ -99,46 +100,70 @@ export async function GET(req: Request) {
       // Save master PNG
       const finalKey = await uploadOutput(batchId, relitBuffer);
 
-      // 6) Aspect ratio exports (contain by default)
-      console.log(`Generating aspect ratio variants for ${img.id}...`);
+      // 6) Social preset exports based on batch settings
+      console.log(`Generating social preset variants for ${img.id}...`);
       try {
-        const { batchExport } = await import('../../../../lib/aspect');
-        const ratios: import('../../../../lib/aspect').RatioKey[] = ['1:1','4:5','3:4','16:9','9:16'];
-        const formats: import('../../../../lib/aspect').Format[] = ['png','jpg'];
-
-        for (const fmt of formats) {
-          const exps = await batchExport(
-            relitBuffer, 
-            ratios.map((r) => ({ 
-              ratio: r, 
-              format: fmt, 
-              width: 2048, 
-              background: '#ffffff' 
-            })), 
-            { cover: false }
-          );
-          
-          for (const exp of exps) {
-            const variantKey = `outputs/${batchId}/variants/${img.id}/${exp.key}`;
-            const { error: vErr } = await sb.storage
-              .from('outputs')
-              .upload(variantKey, exp.buf, { 
-                contentType: fmt === 'png' ? 'image/png' : 'image/jpeg',
-                upsert: false
-              });
-            if (vErr) console.warn('variant upload error', vErr);
+        // Get batch settings to determine which presets to generate
+        const { data: batchRow } = await sb.from('batches').select('settings').eq('id', batchId).single();
+        const settings = (batchRow?.settings || {}) as { presets?: string[]; variants?: ExportItem[] };
+        
+        let items: ExportItem[] = [];
+        
+        // Add selected social presets
+        if (settings.presets?.length) {
+          for (const p of settings.presets) {
+            if (SOCIAL_PRESETS[p]) {
+              items.push(...SOCIAL_PRESETS[p]);
+            }
           }
         }
-        console.log(`Generated ${ratios.length * formats.length} variants for ${img.id}`);
+        
+        // Add custom variants
+        if (settings.variants?.length) {
+          items.push(...settings.variants);
+        }
+        
+        // Default fallback if no settings
+        if (!items.length) {
+          items = [
+            { label: 'IG-Post-1080', w: 1080, h: 1080, format: 'jpg', mode: 'cover' },
+            { label: 'Shopify-2048', w: 2048, h: 2048, format: 'png', mode: 'contain', background: '#ffffff' }
+          ];
+        }
+        
+        const outs = await exportBatch(relitBuffer, items);
+        const variantMap: Record<string, string> = {};
+        
+        for (const o of outs) {
+          const variantKey = `outputs/${batchId}/variants/${img.id}/${o.key}`;
+          const { error: vErr } = await sb.storage
+            .from('outputs')
+            .upload(variantKey, o.buffer, { 
+              contentType: o.key.endsWith('.png') ? 'image/png' : 'image/jpeg',
+              upsert: false
+            });
+          if (!vErr) {
+            variantMap[o.key.replace(/\.(png|jpg)$/, '')] = variantKey;
+          }
+        }
+        
+        console.log(`Generated ${outs.length} social preset variants for ${img.id}`);
+        
+        // Store variant map in output_path as JSON
+        await sb.from('images').update({ 
+          status: 'done', 
+          output_path: JSON.stringify({ main: finalKey, variants: variantMap })
+        }).eq('id', img.id);
+        
       } catch (variantErr: any) {
         console.warn(`Variant generation failed for ${img.id}:`, variantErr.message);
+        // Fallback to just the main image
+        await sb.from('images').update({ 
+          status: 'done', 
+          output_path: finalKey 
+        }).eq('id', img.id);
       }
 
-      // Mark as completed
-      await sb.from('images').update({ 
-        status: 'done', 
-        output_path: finalKey 
-      }).eq('id', img.id);
       
       console.log(`Completed processing ${img.id}`);
 

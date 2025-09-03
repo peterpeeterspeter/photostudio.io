@@ -42,26 +42,55 @@ export async function GET(req: Request) {
           .from('uploads')
           .createSignedUrl(item.source_path, 60 * 10);
           
-        // Output image URL (if exists)
-        let outputUrl: string | null = null;
+        // Parse output path - could be JSON with variants or just a string
+        let outputUrls: any = null;
         if (item.output_path) {
-          const outputResult = await anon.storage
-            .from('outputs')
-            .createSignedUrl(item.output_path, 60 * 10);
-          outputUrl = outputResult.data?.signedUrl || null;
+          try {
+            const parsed = JSON.parse(item.output_path);
+            if (parsed.main && parsed.variants) {
+              // New format with variants
+              const mainResult = await anon.storage
+                .from('outputs')
+                .createSignedUrl(parsed.main, 60 * 10);
+              
+              const variantUrls: Record<string, string> = {};
+              for (const [key, path] of Object.entries(parsed.variants)) {
+                const variantResult = await anon.storage
+                  .from('outputs')
+                  .createSignedUrl(path as string, 60 * 10);
+                if (variantResult.data?.signedUrl) {
+                  variantUrls[key] = variantResult.data.signedUrl;
+                }
+              }
+              
+              outputUrls = {
+                main: mainResult.data?.signedUrl || null,
+                variants: variantUrls
+              };
+            } else {
+              // Legacy format or other JSON structure
+              outputUrls = parsed;
+            }
+          } catch {
+            // Simple string path (legacy)
+            const outputResult = await anon.storage
+              .from('outputs')
+              .createSignedUrl(item.output_path, 60 * 10);
+            outputUrls = outputResult.data?.signedUrl || null;
+          }
         }
         
         return {
           ...item,
           source_url: sourceResult.data?.signedUrl,
-          output_url: outputUrl
+          output_urls: outputUrls
         };
       } catch (e) {
         console.warn(`Failed to generate URLs for image ${item.id}:`, e);
         return {
           ...item,
           source_url: null,
-          output_url: null
+          output_urls: null
         };
       }
     }));

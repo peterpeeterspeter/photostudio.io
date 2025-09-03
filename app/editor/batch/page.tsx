@@ -12,7 +12,7 @@ interface BatchItem {
   id: string;
   status: 'queued' | 'working' | 'done' | 'error';
   source_url?: string;
-  output_url?: string;
+  output_urls?: any;
   error?: string;
 }
 
@@ -41,8 +41,29 @@ export default function BatchEditor() {
   const [batchId, setBatchId] = useState<string | null>(null);
   const [status, setStatus] = useState<BatchStatus | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [ratios, setRatios] = useState<Record<string, boolean>>({ '1:1': true, '4:5': true, '3:4': false, '16:9': false, '9:16': true });
-  const [coverMode, setCoverMode] = useState<boolean>(false);
+  const [presets, setPresets] = useState<Record<string, boolean>>({ 
+    Instagram_Post: true, 
+    Instagram_Reel: true, 
+    Instagram_Story: false, 
+    Facebook_Ad: false, 
+    Pinterest_Pin: false, 
+    Shopify_Product: true 
+  });
+  const [custom, setCustom] = useState<{ 
+    label: string; 
+    w: number; 
+    h: number; 
+    format: 'png'|'jpg'; 
+    mode: 'contain'|'cover'; 
+    background?: string; 
+  }>({ 
+    label: 'Custom-1200x1200', 
+    w: 1200, 
+    h: 1200, 
+    format: 'png', 
+    mode: 'contain', 
+    background: '#ffffff' 
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFilesChange = (newFiles: FileList | null) => {
@@ -77,6 +98,15 @@ export default function BatchEditor() {
     const formData = new FormData();
     formData.append('name', `Batch ${new Date().toLocaleString()}`);
     formData.append('prompt', prompt);
+    
+    // Add settings for presets and custom variants
+    const chosenPresets = Object.entries(presets).filter(([_, v]) => v).map(([k]) => k);
+    const settings = { 
+      presets: chosenPresets, 
+      variants: [custom] 
+    };
+    formData.append('settings', JSON.stringify(settings));
+    
     files.forEach(file => formData.append('images', file));
     
     try {
@@ -239,33 +269,71 @@ export default function BatchEditor() {
                   className="w-full h-24 p-3 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-black/20 focus:border-black"
                 />
                 
-                {/* Aspect Ratios Selection */}
+                {/* Social Presets Selection */}
                 <div className="mt-4 p-3 bg-neutral-50 rounded-lg">
-                  <h4 className="text-sm font-medium mb-3">Export Formats</h4>
-                  <div className="grid grid-cols-5 gap-2 mb-3">
-                    {['1:1','4:5','3:4','16:9','9:16'].map((r) => (
-                      <label key={r} className="flex items-center gap-2 text-sm">
+                  <h4 className="text-sm font-medium mb-3">Social Media Presets</h4>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {Object.keys(presets).map((preset) => (
+                      <label key={preset} className="flex items-center gap-2 text-sm">
                         <input 
                           type="checkbox" 
-                          checked={!!ratios[r]} 
-                          onChange={() => setRatios({ ...ratios, [r]: !ratios[r] })}
+                          checked={presets[preset]} 
+                          onChange={() => setPresets({ ...presets, [preset]: !presets[preset] })}
                           className="rounded"
                         />
-                        <span>{r}</span>
+                        <span>{preset.replace(/_/g, ' ')}</span>
                       </label>
                     ))}
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-neutral-600">
+                  
+                  <h4 className="text-sm font-medium mb-2">Custom Size</h4>
+                  <div className="grid grid-cols-5 gap-2 mb-2">
                     <input 
-                      type="checkbox" 
-                      checked={coverMode} 
-                      onChange={(e) => setCoverMode(e.target.checked)}
-                      className="rounded"
+                      value={custom.label} 
+                      onChange={e => setCustom({ ...custom, label: e.target.value })} 
+                      placeholder="Label" 
+                      className="px-2 py-1 border rounded text-sm"
                     />
-                    <span>Crop to fill (cover) instead of letterbox (contain)</span>
-                  </label>
+                    <input 
+                      type="number" 
+                      value={custom.w} 
+                      onChange={e => setCustom({ ...custom, w: Number(e.target.value) })} 
+                      placeholder="Width" 
+                      className="px-2 py-1 border rounded text-sm"
+                    />
+                    <input 
+                      type="number" 
+                      value={custom.h} 
+                      onChange={e => setCustom({ ...custom, h: Number(e.target.value) })} 
+                      placeholder="Height" 
+                      className="px-2 py-1 border rounded text-sm"
+                    />
+                    <select 
+                      value={custom.format} 
+                      onChange={e => setCustom({ ...custom, format: e.target.value as any })}
+                      className="px-2 py-1 border rounded text-sm"
+                    >
+                      <option value="png">PNG</option>
+                      <option value="jpg">JPG</option>
+                    </select>
+                    <select 
+                      value={custom.mode} 
+                      onChange={e => setCustom({ ...custom, mode: e.target.value as any })}
+                      className="px-2 py-1 border rounded text-sm"
+                    >
+                      <option value="contain">Contain</option>
+                      <option value="cover">Cover</option>
+                    </select>
+                  </div>
+                  <input 
+                    value={custom.background || ''} 
+                    onChange={e => setCustom({ ...custom, background: e.target.value })} 
+                    placeholder="Background color (#ffffff)" 
+                    className="w-full px-2 py-1 border rounded text-sm"
+                  />
+                  
                   <p className="text-xs text-neutral-500 mt-2">
-                    Each image will be exported in PNG and JPG formats for all selected aspect ratios.
+                    Selected presets and custom size will be generated for each processed image.
                   </p>
                 </div>
               </div>
@@ -345,16 +413,49 @@ export default function BatchEditor() {
                           </div>
                         </div>
                         
-                        {item.status === 'done' && item.output_url && (
+                        {item.status === 'done' && item.output_urls && (
                           <div className="p-3 bg-neutral-50">
-                            <a
-                              href={item.output_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              View Result →
-                            </a>
+                            {typeof item.output_urls === 'string' ? (
+                              <a
+                                href={item.output_urls}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                View Result →
+                              </a>
+                            ) : item.output_urls?.main ? (
+                              <div className="space-y-2">
+                                <a
+                                  href={item.output_urls.main}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:text-blue-800 font-medium block"
+                                >
+                                  Main Result →
+                                </a>
+                                {item.output_urls.variants && Object.keys(item.output_urls.variants).length > 0 && (
+                                  <details className="text-xs">
+                                    <summary className="cursor-pointer text-neutral-600">
+                                      {Object.keys(item.output_urls.variants).length} variants
+                                    </summary>
+                                    <div className="mt-1 space-y-1">
+                                      {Object.entries(item.output_urls.variants).map(([key, url]: [string, any]) => (
+                                        <a
+                                          key={key}
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:text-blue-800 block"
+                                        >
+                                          {key} →
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </details>
+                                )}
+                              </div>
+                            ) : null}
                           </div>
                         )}
                         
