@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 
 export default function Home() {
   return (
@@ -31,6 +32,9 @@ export default function Home() {
           <p className="mt-4 text-sm text-gray-500">
             No credit card required. Cancel anytime.
           </p>
+          <div className="mt-12">
+            <BeforeAfterSlider />
+          </div>
         </div>
       </section>
 
