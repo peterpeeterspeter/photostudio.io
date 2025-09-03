@@ -1,5 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -7,19 +8,39 @@ export async function GET(request: NextRequest) {
   const origin = requestUrl.origin
 
   if (code) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const cookieStore = await cookies()
+    const response = NextResponse.redirect(`${origin}/account`)
+    
+    const supabase = createServerClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value },
+          set(name, value, options) { 
+            response.cookies.set({ name, value, ...options })
+          },
+          remove(name, options) { 
+            response.cookies.set({ name, value: '', ...options })
+          },
+        },
+      }
     )
     
     try {
-      await supabase.auth.exchangeCodeForSession(code)
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      if (error) {
+        console.error('Auth callback error:', error)
+        return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
+      }
     } catch (error) {
       console.error('Auth callback error:', error)
       return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
     }
+    
+    return response
   }
 
-  // Redirect to account page after successful authentication
-  return NextResponse.redirect(`${origin}/account`)
+  // No code provided, redirect to login
+  return NextResponse.redirect(`${origin}/login`)
 }
