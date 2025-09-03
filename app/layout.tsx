@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
-import { AuthHandler } from "@/components/AuthHandler";
+import AuthBoot from "@/components/AuthBoot";
 
 export const metadata: Metadata = {
   title: "Photostudio.io – AI product photos for boutiques",
@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="scroll-smooth">
       <body className="bg-white text-gray-900 antialiased">
-        <AuthHandler />
+        <AuthBoot />
         <NavBar />
         <main>{children}</main>
         <Footer />
