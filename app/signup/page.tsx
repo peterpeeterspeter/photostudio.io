@@ -3,7 +3,6 @@ import Link from "next/link";
 import { createClient } from '@supabase/supabase-js';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LoginWorkaround } from '@/components/LoginWorkaround';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -21,6 +20,7 @@ export default function SignUpPage() {
     setMessage('');
 
     try {
+      // Try to sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -35,23 +35,42 @@ export default function SignUpPage() {
       if (error) {
         console.error('Signup error:', error);
         setMessage(`Registration failed: ${error.message}`);
-      } else if (data.user) {
+        return;
+      }
+
+      if (data.user) {
         console.log('Signup successful:', data);
+        
         if (data.user.email_confirmed_at) {
-          // User is immediately confirmed, redirect to account
+          // User is immediately confirmed
           setMessage('Registration successful! Redirecting to your account...');
           setTimeout(() => router.push('/account'), 1000);
         } else {
-          // User needs to confirm email
-          setMessage(`Registration successful! Your account was created but needs email confirmation. Since emails might not be configured, try logging in with the magic link using your email: ${email}`);
+          // User needs email confirmation, but try to sign them in anyway
+          console.log('User created but not confirmed, attempting sign-in...');
+          
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (!signInError && signInData.user) {
+            console.log('Sign-in successful');
+            setMessage('Registration successful! Redirecting to your account...');
+            setTimeout(() => router.push('/account'), 1000);
+          } else {
+            setMessage('Account created! Please check your email to confirm your account, or try signing in.');
+          }
         }
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
       setMessage(`Registration failed: ${error.message}`);
     } finally {
       setLoading(false);
     }
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-12">
       <div className="mx-auto max-w-md px-4">
@@ -130,8 +149,6 @@ export default function SignUpPage() {
               </p>
             </div>
           )}
-
-          <LoginWorkaround />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
