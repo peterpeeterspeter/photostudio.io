@@ -1,274 +1,252 @@
+// app/account/shell.tsx
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+type Profile = {
+  id: string;
+  email: string | null;
+  plan: "free" | "pro" | "agency" | null;
+  current_period_end: string | null;
+  stripe_customer_id: string | null;
+};
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function AccountClient() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"checkout-pro" | "checkout-agency" | "portal" | null>(null);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Account</h1>
-          <p className="mt-2 text-gray-600">
-            Manage your subscription, usage, and account settings
-          </p>
-        </div>
+  // human-friendly date
+  const periodEnd = useMemo(() => {
+    if (!profile?.current_period_end) return null;
+    try {
+      const d = new Date(profile.current_period_end);
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    } catch {
+      return null;
+    }
+  }, [profile?.current_period_end]);
 
-        {/* Navigation Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: "overview", label: "Overview" },
-              { id: "billing", label: "Billing" },
-              { id: "usage", label: "Usage" },
-              { id: "settings", label: "Settings" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+  useEffect(() => {
+    let mounted = true;
 
-        {/* Tab Content */}
-        <div className="mt-8">
-          {activeTab === "overview" && <OverviewTab />}
-          {activeTab === "billing" && <BillingTab />}
-          {activeTab === "usage" && <UsageTab />}
-          {activeTab === "settings" && <SettingsTab />}
-        </div>
-      </div>
-    </div>
-  );
-}
+    async function init() {
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const u = auth?.user ?? null;
+        if (!u) {
+          setErr("not-auth");
+          setLoading(false);
+          return;
+        }
+        if (!mounted) return;
 
-function OverviewTab() {
-  return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Current Plan</h3>
-        <p className="mt-1 text-gray-600">Free Plan</p>
-        <p className="mt-2 text-sm text-gray-500">
-          25 edits per month included
-        </p>
-        <Link
-          href="/pricing"
-          className="mt-4 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+        setUserId(u.id);
+        setEmail(u.email ?? null);
+
+        // Load profile row (RLS policy should allow self-select)
+        const { data: prof, error } = await supabase
+          .from("profiles")
+          .select("id,email,plan,current_period_end,stripe_customer_id")
+          .eq("id", u.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!mounted) return;
+
+        // if profile row doesn't exist yet, create it
+        if (!prof) {
+          const { error: insErr } = await supabase
+            .from("profiles")
+            .insert({ id: u.id, email: u.email });
+          if (insErr) throw insErr;
+          setProfile({ id: u.id, email: u.email, plan: "free", current_period_end: null, stripe_customer_id: null });
+        } else {
+          setProfile(prof as Profile);
+        }
+      } catch (e: any) {
+        console.error(e);
+        setErr(e?.message || "Failed to load account");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    init();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function startCheckout(priceEnvKey: "STRIPE_PRICE_PRO_MONTHLY_ID" | "STRIPE_PRICE_AGENCY_MONTHLY_ID") {
+    try {
+      setBusy(priceEnvKey === "STRIPE_PRICE_PRO_MONTHLY_ID" ? "checkout-pro" : "checkout-agency");
+
+      // Don't put price IDs client-side if you prefer; you can also POST { plan: "pro" } and map server-side.
+      const priceId = process.env[priceEnvKey] as string | undefined;
+      if (!priceId) {
+        // Fallback: let API map a plan string → real price ID
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: priceEnvKey === "STRIPE_PRICE_PRO_MONTHLY_ID" ? "pro" : "agency" }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to create checkout session");
+        window.location.href = data.url;
+        return;
+      }
+
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to create checkout session");
+      window.location.href = data.url;
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || "Checkout failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function openPortal() {
+    try {
+      setBusy("portal");
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to open billing portal");
+      window.location.href = data.url;
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || "Portal failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-16">
+        <h1 className="text-3xl font-bold">Account</h1>
+        <p className="mt-4 text-gray-600">Loading your account…</p>
+      </main>
+    );
+  }
+
+  if (err === "not-auth") {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-16">
+        <h1 className="text-3xl font-bold">Account</h1>
+        <p className="mt-4 text-gray-600">You're not signed in.</p>
+        <a
+          href="/login"
+          className="mt-6 inline-flex rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700"
         >
-          Upgrade Plan
-        </Link>
-      </div>
+          Sign in
+        </a>
+      </main>
+    );
+  }
 
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">This Month</h3>
-        <p className="mt-1 text-3xl font-bold text-gray-900">12</p>
-        <p className="mt-1 text-sm text-gray-500">edits used out of 25</p>
-        <div className="mt-3 bg-gray-200 rounded-full h-2">
-          <div className="bg-indigo-600 h-2 rounded-full w-12/25"></div>
-        </div>
-      </div>
+  if (err) {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-16">
+        <h1 className="text-3xl font-bold">Account</h1>
+        <p className="mt-4 text-red-600">Error: {err}</p>
+      </main>
+    );
+  }
 
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
-        <div className="mt-4 space-y-2">
-          <Link
-            href="/editor"
-            className="block rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:border-gray-400"
-          >
-            Start New Edit
-          </Link>
-          <Link
-            href="/editor/batch"
-            className="block rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:border-gray-400"
-          >
-            Batch Processing
-          </Link>
-        </div>
-      </div>
+  const plan = profile?.plan ?? "free";
 
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-        <div className="mt-4 space-y-3">
-          <div className="text-sm">
-            <p className="font-medium text-gray-900">Ghost mannequin edit</p>
-            <p className="text-gray-500">2 hours ago</p>
-          </div>
-          <div className="text-sm">
-            <p className="font-medium text-gray-900">Background swap</p>
-            <p className="text-gray-500">1 day ago</p>
-          </div>
-          <div className="text-sm">
-            <p className="font-medium text-gray-900">Batch processing (5 images)</p>
-            <p className="text-gray-500">3 days ago</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BillingTab() {
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Subscription</h3>
-        <p className="mt-1 text-gray-600">You're currently on the Free plan</p>
-        <div className="mt-4 flex gap-4">
-          <Link
-            href="/pricing"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+    <main className="mx-auto max-w-4xl px-6 py-16">
+      <h1 className="text-3xl font-bold">Account</h1>
+
+      <div className="mt-6 rounded-xl border bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Signed in as</p>
+            <p className="text-lg font-semibold">{email || "—"}</p>
+          </div>
+          <button
+            onClick={signOut}
+            className="mt-3 inline-flex rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 sm:mt-0"
           >
-            Upgrade to Pro
-          </Link>
-          <Link
-            href="/pricing"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
-          >
-            View All Plans
-          </Link>
-        </div>
-      </div>
-
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Billing History</h3>
-        <p className="mt-1 text-gray-600">No billing history yet</p>
-        <p className="mt-2 text-sm text-gray-500">
-          Upgrade to a paid plan to see your billing history here
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function UsageTab() {
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Current Usage</h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="text-sm font-medium text-gray-900">Images Edited</p>
-            <p className="text-2xl font-bold text-gray-900">12 / 25</p>
-            <div className="mt-2 bg-gray-200 rounded-full h-2">
-              <div className="bg-indigo-600 h-2 rounded-full" style={{ width: "48%" }}></div>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900">Days Remaining</p>
-            <p className="text-2xl font-bold text-gray-900">18</p>
-            <p className="text-sm text-gray-500">Until next reset</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Usage History</h3>
-        <div className="mt-4 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Count
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-900">Today</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Single edits</td>
-                <td className="px-4 py-3 text-sm text-gray-900">3</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-900">Yesterday</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Batch processing</td>
-                <td className="px-4 py-3 text-sm text-gray-900">5</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-900">2 days ago</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Single edits</td>
-                <td className="px-4 py-3 text-sm text-gray-900">4</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SettingsTab() {
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value="user@example.com"
-              disabled
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Store Name</label>
-            <input
-              type="text"
-              placeholder="Your boutique name"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-          <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-            Save Changes
+            Sign out
           </button>
         </div>
-      </div>
 
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h3 className="text-lg font-semibold text-gray-900">Integrations</h3>
-        <div className="mt-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Shopify</p>
-              <p className="text-sm text-gray-500">Connect your store for direct uploads</p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-gray-600">Current plan</p>
+            <p className="text-xl font-semibold capitalize">{plan}</p>
+            {periodEnd && plan !== "free" && (
+              <p className="mt-1 text-xs text-gray-500">Renews: {periodEnd}</p>
+            )}
+          </div>
+
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-gray-600">Stripe customer</p>
+            <p className="text-sm">{profile?.stripe_customer_id || "—"}</p>
+          </div>
+
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-gray-600">Actions</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                onClick={openPortal}
+                disabled={busy === "portal"}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50 disabled:opacity-60"
+              >
+                {busy === "portal" ? "Opening…" : "Manage billing"}
+              </button>
             </div>
-            <Link
-              href="/integrations/shopify"
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
+          </div>
+        </div>
+
+        {/* Upgrade area */}
+        <div className="mt-8 rounded-lg bg-gray-50 p-4">
+          <h3 className="font-semibold">Upgrade your plan</h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Unlock batch processing, Shopify sync, and priority edits.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              onClick={() => startCheckout("STRIPE_PRICE_PRO_MONTHLY_ID")}
+              disabled={busy === "checkout-pro"}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
             >
-              Connect
-            </Link>
+              {busy === "checkout-pro" ? "Redirecting…" : "Upgrade to Pro (€39/mo)"}
+            </button>
+            <button
+              onClick={() => startCheckout("STRIPE_PRICE_AGENCY_MONTHLY_ID")}
+              disabled={busy === "checkout-agency"}
+              className="rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-gray-50 disabled:opacity-60"
+            >
+              {busy === "checkout-agency" ? "Redirecting…" : "Upgrade to Agency"}
+            </button>
           </div>
         </div>
       </div>
-
-      <div className="rounded-lg bg-red-50 p-6 shadow">
-        <h3 className="text-lg font-semibold text-red-900">Danger Zone</h3>
-        <p className="mt-1 text-sm text-red-600">
-          These actions cannot be undone
-        </p>
-        <button className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
-          Delete Account
-        </button>
-      </div>
-    </div>
+    </main>
   );
 }
