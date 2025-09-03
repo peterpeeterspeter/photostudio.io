@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from '@supabase/supabase-js';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LoginWorkaround } from '@/components/LoginWorkaround';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -32,14 +33,17 @@ export default function SignUpPage() {
       });
 
       if (error) {
+        console.error('Signup error:', error);
         setMessage(`Registration failed: ${error.message}`);
       } else if (data.user) {
+        console.log('Signup successful:', data);
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to account
-          router.push('/account');
+          setMessage('Registration successful! Redirecting to your account...');
+          setTimeout(() => router.push('/account'), 1000);
         } else {
           // User needs to confirm email
-          setMessage('Registration successful! Please check your email to confirm your account.');
+          setMessage(`Registration successful! Your account was created but needs email confirmation. Since emails might not be configured, try logging in with the magic link using your email: ${email}`);
         }
       }
     } catch (error: any) {
@@ -126,6 +130,8 @@ export default function SignUpPage() {
               </p>
             </div>
           )}
+
+          <LoginWorkaround />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
