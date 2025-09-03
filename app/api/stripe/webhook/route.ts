@@ -1,75 +1,51 @@
-export const runtime = 'nodejs';
-import { headers } from 'next/headers';
-import { stripe, PRICES } from '@/lib/stripe';
-import { supabaseService } from '@/lib/supabase';
+export const runtime = "nodejs";
 
+import Stripe from "stripe";
+import { headers } from "next/headers";
+import { updateSubscriptionFromEvent } from "@/lib/stripeSync";
+
+// Init Stripe with your secret (server-side only)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-08-27.basil",
+});
+
+// Stripe requires the raw body to verify signatures.
+// In App Router, reading req.text() gives you the raw payload.
 export async function POST(req: Request) {
+  const body = await req.text();
   const headersList = await headers();
-  const sig = headersList.get('stripe-signature')!;
-  const buf = Buffer.from(await req.arrayBuffer());
+  const sig = headersList.get("stripe-signature");
 
-  let event: any;
+  if (!sig) {
+    return new Response("Missing signature", { status: 400 });
+  }
+
   try {
-    event = stripe.webhooks.constructEvent(buf, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    const event = stripe.webhooks.constructEvent(
+      body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+
+    // Handle only what we care about
+    switch (event.type) {
+      case "checkout.session.completed":
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted":
+      case "invoice.payment_succeeded":
+      case "invoice.payment_failed":
+        await updateSubscriptionFromEvent(event);
+        break;
+
+      default:
+        // ignore other events
+        break;
+    }
+
+    return new Response("ok", { status: 200 });
   } catch (err: any) {
-    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    console.error("❌ Webhook error:", err?.message || err);
+    return new Response("Webhook error", { status: 400 });
   }
-
-  const sb = supabaseService();
-
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const s = event.data.object as any;
-      const customerId = s.customer as string;
-      
-      // Lookup user by customer id
-      const { data: rows } = await sb.from('profiles').select('id').eq('stripe_customer_id', customerId).limit(1);
-      const userId = rows?.[0]?.id;
-      
-      if (userId) {
-        // Determine plan from the subscription's price lookup
-        const sub = await stripe.subscriptions.retrieve(s.subscription as string);
-        const priceId = sub.items.data[0]?.price?.id;
-        const plan = priceId === PRICES.pro_monthly ? 'pro' : priceId === PRICES.agency_monthly ? 'agency' : 'free';
-        await sb.from('profiles').update({ 
-          plan, 
-          current_period_end: new Date((sub as any).current_period_end * 1000).toISOString() 
-        }).eq('id', userId);
-      }
-      break;
-    }
-    
-    case 'customer.subscription.updated':
-    case 'customer.subscription.created': {
-      const sub = event.data.object as any;
-      const customerId = sub.customer as string;
-      const { data: rows } = await sb.from('profiles').select('id').eq('stripe_customer_id', customerId).limit(1);
-      const userId = rows?.[0]?.id;
-      
-      if (userId) {
-        const priceId = sub.items.data[0]?.price?.id;
-        const plan = priceId === PRICES.pro_monthly ? 'pro' : priceId === PRICES.agency_monthly ? 'agency' : 'free';
-        await sb.from('profiles').update({ 
-          plan, 
-          current_period_end: new Date((sub as any).current_period_end * 1000).toISOString() 
-        }).eq('id', userId);
-      }
-      break;
-    }
-    
-    case 'customer.subscription.deleted': {
-      const sub = event.data.object as any;
-      const customerId = sub.customer as string;
-      await sb.from('profiles').update({ 
-        plan: 'free', 
-        current_period_end: null 
-      }).eq('stripe_customer_id', customerId);
-      break;
-    }
-    
-    default:
-      // ignore other events
-  }
-
-  return new Response('ok', { status: 200 });
 }
