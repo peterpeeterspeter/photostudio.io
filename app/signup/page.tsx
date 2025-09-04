@@ -26,7 +26,7 @@ export default function SignUpPage() {
           data: {
             store_name: storeName,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`
         }
       });
 
@@ -49,7 +49,9 @@ export default function SignUpPage() {
           
           const { error: magicLinkError } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+            options: { 
+              emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`
+            }
           });
           
           if (!magicLinkError) {

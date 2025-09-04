@@ -10,7 +10,9 @@ export default function LoginPage() {
     setMsg('Sending magic link...');
     const { error } = await supabase.auth.signInWithOtp({ 
       email, 
-      options: { emailRedirectTo: `${location.origin}/auth/callback` } 
+      options: { 
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback` 
+      } 
     });
     if (error) {
       console.error('Magic link error:', error);
@@ -24,7 +26,9 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google', 
-        options: { redirectTo: `${location.origin}/auth/callback` } 
+        options: { 
+          redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback` 
+        } 
       });
       if (error) {
         console.error('Google OAuth error:', error);
