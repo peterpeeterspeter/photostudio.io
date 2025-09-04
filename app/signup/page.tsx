@@ -51,6 +51,7 @@ export default function SignUpPage() {
           // User needs email confirmation, use magic link to complete the process
           console.log('User created but not confirmed, sending magic link...');
           console.log('Base URL:', process.env.NEXT_PUBLIC_BASE_URL);
+          console.log('Full redirect URL:', `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`);
           
           const { error: magicLinkError } = await supabase.auth.signInWithOtp({
             email,
