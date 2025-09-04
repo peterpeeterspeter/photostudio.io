@@ -37,6 +37,8 @@ export default function SignUpPage() {
         setMessage(`Registration failed: ${error.message}`);
         return;
       }
+      
+      console.log('Signup response:', { data, error });
 
       if (data.user) {
         console.log('Signup successful:', data);
@@ -48,6 +50,7 @@ export default function SignUpPage() {
         } else {
           // User needs email confirmation, use magic link to complete the process
           console.log('User created but not confirmed, sending magic link...');
+          console.log('Base URL:', process.env.NEXT_PUBLIC_BASE_URL);
           
           const { error: magicLinkError } = await supabase.auth.signInWithOtp({
             email,
