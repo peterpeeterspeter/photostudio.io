@@ -22,6 +22,8 @@ export default function Login() {
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           setMessage('Wrong email or password. Try signing up if you don\'t have an account.')
+        } else if (error.message.includes('Email not confirmed')) {
+          setMessage('Please check your email and click the confirmation link before signing in.')
         } else {
           setMessage(`Error: ${error.message}`)
         }

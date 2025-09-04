@@ -12,28 +12,16 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 
 // Simple auth functions
 export const signUp = async (email: string, password: string, storeName?: string) => {
-  // First try to sign up
-  const signUpResult = await supabase.auth.signUp({
+  return await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: undefined, // Disable email confirmation
       data: {
         store_name: storeName || '',
       }
     }
   })
-  
-  // If signup successful but no session, immediately sign in
-  if (signUpResult.data.user && !signUpResult.data.session) {
-    console.log('User created, now signing in...')
-    const signInResult = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    return signInResult
-  }
-  
-  return signUpResult
 }
 
 export const signIn = async (email: string, password: string) => {

@@ -22,26 +22,19 @@ export default function SignUp() {
       
       if (error) {
         if (error.message.includes('User already registered')) {
-          // User exists, try to sign in
-          setMessage('Account exists, trying to sign in...')
-          const { data: signInData, error: signInError } = await signIn(email, password)
-          if (signInError) {
-            setMessage(`Sign in failed: ${signInError.message}`)
-          } else {
-            setMessage('Signed in successfully!')
-            router.push('/account')
-          }
-        } else if (error.message.includes('invalid')) {
-          setMessage('Please use a real email address (e.g., you@gmail.com)')
+          setMessage('Account already exists! Please check your email for confirmation or try logging in.')
         } else {
-          setMessage(`Error: ${error.message}`)
+          setMessage(`${error.message}`)
         }
-      } else if (data.user && data.session) {
-        setMessage('Account created and signed in!')
-        router.push('/account')
       } else if (data.user) {
-        setMessage('Account created successfully!')
-        router.push('/account')
+        if (data.session) {
+          // User is immediately signed in (email confirmation disabled)
+          setMessage('Account created and signed in!')
+          router.push('/account')
+        } else {
+          // Email confirmation required
+          setMessage('Account created! Please check your email to confirm your account, then sign in.')
+        }
       }
     } catch (err) {
       setMessage('Unexpected error occurred')
