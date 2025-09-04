@@ -21,11 +21,15 @@ export default function SignUp() {
       const { data, error } = await signUp(email, password, storeName)
       
       if (error) {
-        setMessage(`Error: ${error.message}`)
+        if (error.message.includes('invalid')) {
+          setMessage('Please use a real email address (e.g., you@gmail.com)')
+        } else {
+          setMessage(`Error: ${error.message}`)
+        }
       } else if (data.user) {
         setMessage('Account created successfully!')
         // Immediately redirect to account page
-        router.push('/account')
+        setTimeout(() => router.push('/account'), 500)
       }
     } catch (err) {
       setMessage('Unexpected error occurred')
@@ -51,7 +55,7 @@ export default function SignUp() {
           
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email (use real address like you@gmail.com)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
