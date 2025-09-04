@@ -1,55 +1,78 @@
-"use client";
+'use client'
 
-import { useAuth } from "@/components/AuthProvider";
-import Link from "next/link";
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { getCurrentUser, signOut } from '@/lib/auth'
 
-export default function AccountPage() {
-  const { session, loading, signOut } = useAuth();
+export default function Account() {
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    checkUser()
+  }, [])
+
+  const checkUser = async () => {
+    try {
+      const currentUser = await getCurrentUser()
+      if (currentUser) {
+        setUser(currentUser)
+      } else {
+        router.push('/login')
+      }
+    } catch (error) {
+      router.push('/login')
+    }
+    setLoading(false)
+  }
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/')
+  }
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-xl p-6">
-        <p className="text-sm text-neutral-500">Checking your session…</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Loading...</div>
       </div>
-    );
+    )
   }
 
-  if (!session) {
-    return (
-      <div className="mx-auto max-w-xl p-6 space-y-4">
-        <h1 className="text-2xl font-semibold">You're signed out</h1>
-        <p className="text-neutral-600">
-          Please sign in to access your account.
-        </p>
-        <Link
-          href="/login"
-          className="inline-flex items-center rounded-md bg-black px-4 py-2 text-white"
-        >
-          Go to Login
-        </Link>
-      </div>
-    );
+  if (!user) {
+    return null
   }
-
-  const email = session.user.email ?? "Unknown";
 
   return (
-    <div className="mx-auto max-w-2xl p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Account</h1>
-      <div className="rounded-lg border p-4">
-        <p className="text-sm text-neutral-500">Signed in as</p>
-        <p className="text-lg font-medium">{email}</p>
+    <div className="min-h-screen p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Account Dashboard</h1>
+          <button
+            onClick={handleSignOut}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+          >
+            Sign Out
+          </button>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Account Information</h2>
+          <div className="space-y-2">
+            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>Store Name:</strong> {user.user_metadata?.store_name || 'Not set'}</p>
+            <p><strong>Account Created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+        
+        <div className="mt-8 bg-green-100 p-6 rounded-lg">
+          <h2 className="text-xl font-semibold text-green-800 mb-2">✅ Authentication Working!</h2>
+          <p className="text-green-700">
+            You've successfully signed in to your Photostudio.io account.
+          </p>
+        </div>
       </div>
-
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          await signOut();
-          window.location.href = "/login";
-        }}
-      >
-        <button className="rounded-md border px-4 py-2">Sign out</button>
-      </form>
     </div>
-  );
+  )
 }
