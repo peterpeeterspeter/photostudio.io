@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { sb } from '@/lib/supabase-browser';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -16,6 +16,8 @@ export default function SignUpPage() {
     e.preventDefault();
     setLoading(true);
     setMessage('');
+    
+    const supabase = sb();
 
     try {
       // Try to sign up the user

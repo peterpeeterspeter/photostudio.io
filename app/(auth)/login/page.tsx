@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { sb } from '@/lib/supabase-browser';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -8,6 +8,7 @@ export default function LoginPage() {
 
   async function magicLink() {
     setMsg('Sending magic link...');
+    const supabase = sb();
     const { error } = await supabase.auth.signInWithOtp({ 
       email, 
       options: { 
@@ -24,6 +25,7 @@ export default function LoginPage() {
 
   async function google() {
     try {
+      const supabase = sb();
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google', 
         options: { 
