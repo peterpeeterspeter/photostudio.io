@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signUp } from '@/lib/auth'
+import { signUp, signIn } from '@/lib/auth'
 
 export default function SignUp() {
   const [email, setEmail] = useState('')
@@ -21,18 +21,31 @@ export default function SignUp() {
       const { data, error } = await signUp(email, password, storeName)
       
       if (error) {
-        if (error.message.includes('invalid')) {
+        if (error.message.includes('User already registered')) {
+          // User exists, try to sign in
+          setMessage('Account exists, trying to sign in...')
+          const { data: signInData, error: signInError } = await signIn(email, password)
+          if (signInError) {
+            setMessage(`Sign in failed: ${signInError.message}`)
+          } else {
+            setMessage('Signed in successfully!')
+            router.push('/account')
+          }
+        } else if (error.message.includes('invalid')) {
           setMessage('Please use a real email address (e.g., you@gmail.com)')
         } else {
           setMessage(`Error: ${error.message}`)
         }
+      } else if (data.user && data.session) {
+        setMessage('Account created and signed in!')
+        router.push('/account')
       } else if (data.user) {
         setMessage('Account created successfully!')
-        // Immediately redirect to account page
-        setTimeout(() => router.push('/account'), 500)
+        router.push('/account')
       }
     } catch (err) {
       setMessage('Unexpected error occurred')
+      console.error('Signup error:', err)
     }
     
     setLoading(false)

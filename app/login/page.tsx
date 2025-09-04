@@ -20,13 +20,18 @@ export default function Login() {
       const { data, error } = await signIn(email, password)
       
       if (error) {
-        setMessage(`Error: ${error.message}`)
+        if (error.message.includes('Invalid login credentials')) {
+          setMessage('Wrong email or password. Try signing up if you don\'t have an account.')
+        } else {
+          setMessage(`Error: ${error.message}`)
+        }
       } else if (data.user) {
         setMessage('Signed in successfully!')
         router.push('/account')
       }
     } catch (err) {
       setMessage('Unexpected error occurred')
+      console.error('Login error:', err)
     }
     
     setLoading(false)
