@@ -3,6 +3,22 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 const nextConfig = {
   compiler: { styledComponents: true },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'dfqtcthccvwtutgxonym.supabase.co',
+        port: '',
+        pathname: '/storage/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'v3.fal.media',
+        port: '',
+        pathname: '/files/**',
+      },
+    ],
+  },
   async headers() {
     // Light-touch security headers for Replit environment
     return [{

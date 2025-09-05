@@ -1,0 +1,110 @@
+# Task ID: 14
+# Title: Implement Main Try-On Page
+# Status: pending
+# Dependencies: 5, 12, 13
+# Priority: high
+# Description: Create the main try-on page that integrates all the components.
+# Details:
+Implement the main try-on page in app/tryon/page.tsx:
+
+1. Create a Next.js page component that integrates all the try-on components
+2. Implement the user flow from upload to processing to results
+3. Add authentication checks and redirects
+4. Follow the PRD specification:
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { TryOnUpload } from '@/components/tryon/TryOnUpload';
+import { ProcessingStatus } from '@/components/tryon/processing/ProcessingStatus';
+import { TryOnResults } from '@/components/tryon/TryOnResults';
+import { TryOnResult } from '@/types/tryon';
+
+export default function TryOnPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [step, setStep] = useState<'upload' | 'processing' | 'results'>('upload');
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [result, setResult] = useState<TryOnResult | null>(null);
+
+  // Authentication check (similar to editor pages)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login?redirectTo=' + encodeURIComponent('/tryon'));
+    return null;
+  }
+
+  const handleProcessStart = (newJobId: string) => {
+    setJobId(newJobId);
+    setStep('processing');
+  };
+
+  const handleProcessComplete = (newResult: TryOnResult) => {
+    setResult(newResult);
+    setStep('results');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Virtual Try-On Studio
+          </h1>
+          <p className="text-xl text-gray-600">
+            See how garments look on you with AI-powered virtual fitting
+          </p>
+        </div>
+
+        {step === 'upload' && (
+          <TryOnUpload onProcessStart={handleProcessStart} />
+        )}
+        
+        {step === 'processing' && jobId && (
+          <ProcessingStatus 
+            jobId={jobId} 
+            onComplete={handleProcessComplete}
+          />
+        )}
+        
+        {step === 'results' && result && (
+          <TryOnResults 
+            result={result} 
+            onStartNew={() => setStep('upload')}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+5. Implement the upload, processing, and results pages in their respective directories:
+   - app/tryon/upload/page.tsx
+   - app/tryon/processing/[id]/page.tsx
+   - app/tryon/result/[id]/page.tsx
+
+6. Add proper error handling and loading states
+7. Implement authentication checks and redirects
+8. Add analytics tracking for user interactions
+
+# Test Strategy:
+Test the main try-on page:
+1. Create a test environment that mocks the authentication context
+2. Test the page with different user states (logged in, logged out, loading)
+3. Verify that the page correctly transitions between steps
+4. Test the integration with all the components
+5. Verify that authentication checks and redirects work correctly
+6. Test error handling and recovery
+7. Verify that the page is responsive and works well on different screen sizes
+8. Test the full user flow from upload to processing to results

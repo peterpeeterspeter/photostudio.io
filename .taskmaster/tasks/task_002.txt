@@ -1,0 +1,66 @@
+# Task ID: 2
+# Title: Define TypeScript Interfaces and Types
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create TypeScript type definitions for the Virtual Try-On feature based on the PRD specifications.
+# Details:
+Create the following TypeScript interfaces in the types/tryon.ts file:
+
+1. Core interfaces from the PRD:
+```typescript
+interface UploadInterface {...}
+interface AIProcessor {...}
+interface ResultInterface {...}
+```
+
+2. API request/response types:
+```typescript
+interface TryOnUploadRequest {...}
+interface TryOnUploadResponse {...}
+interface TryOnProcessRequest {...}
+interface TryOnProcessResponse {...}
+interface TryOnResultResponse {...}
+```
+
+3. Additional types needed for the feature:
+```typescript
+type GarmentType = 'shirt' | 'dress' | 'pants' | 'jacket' | 'hoodie';
+type ProcessingStatus = 'queued' | 'processing' | 'completed' | 'failed';
+type TryOnOptions = {
+  garmentType?: GarmentType;
+  style?: 'casual' | 'formal' | 'sporty';
+  fit?: 'loose' | 'fitted' | 'regular';
+  preserveFace?: boolean;
+  quality?: 'fast' | 'standard' | 'high';
+};
+interface TryOnResult {
+  imageUrl: string;
+  thumbnailUrl: string;
+  originalUrls: {
+    person: string;
+    garment: string;
+  };
+  processingTime: number;
+  qualityScore: number; // 0-100
+  confidence: number; // 0-100
+  provider: string;
+}
+```
+
+4. Error handling types:
+```typescript
+type TryOnErrorType = 'upload_failed' | 'validation_failed' | 'processing_timeout' | 'ai_service_error' | 'insufficient_quality' | 'network_error';
+interface TryOnError {
+  type: TryOnErrorType;
+  message: string;
+  retryable: boolean;
+  suggestions?: string[];
+  technicalDetails?: any;
+}
+```
+
+Ensure all types are properly exported and documented with JSDoc comments for better IDE integration.
+
+# Test Strategy:
+Use TypeScript's type checking to verify that all interfaces are correctly defined. Create a simple test file that imports and uses these types to ensure they are properly exported and have no type errors.

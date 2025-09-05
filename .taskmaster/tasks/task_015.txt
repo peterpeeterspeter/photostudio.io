@@ -1,0 +1,185 @@
+# Task ID: 15
+# Title: Implement Database Schema and Migrations
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create the database schema and migrations for the try-on feature.
+# Details:
+Implement the database schema and migrations for the try-on feature:
+
+1. Create a migration file for the Supabase database
+2. Implement the tables specified in the PRD:
+
+```sql
+-- Try-on sessions table
+CREATE TABLE tryon_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  status TEXT NOT NULL DEFAULT 'created',
+  garment_file_id TEXT,
+  person_file_id TEXT,
+  result_url TEXT,
+  processing_time INTEGER,
+  quality_score REAL,
+  confidence REAL,
+  provider TEXT,
+  options JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Try-on files table
+CREATE TABLE tryon_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_id TEXT UNIQUE NOT NULL,
+  user_id UUID REFERENCES auth.users(id),
+  type TEXT NOT NULL, -- 'garment' or 'person'
+  original_name TEXT,
+  file_size INTEGER,
+  mime_type TEXT,
+  dimensions JSONB,
+  storage_url TEXT,
+  validation_result JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Try-on history for analytics
+CREATE TABLE tryon_analytics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES tryon_sessions(id),
+  event_type TEXT NOT NULL,
+  event_data JSONB,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add indexes for performance
+CREATE INDEX idx_tryon_sessions_user_id ON tryon_sessions(user_id);
+CREATE INDEX idx_tryon_sessions_status ON tryon_sessions(status);
+CREATE INDEX idx_tryon_files_user_id ON tryon_files(user_id);
+CREATE INDEX idx_tryon_files_file_id ON tryon_files(file_id);
+CREATE INDEX idx_tryon_analytics_session_id ON tryon_analytics(session_id);
+```
+
+3. Create a migration script that can be run to set up the database
+4. Add RLS (Row Level Security) policies for the tables to ensure data security
+5. Create storage buckets for the try-on files
+6. Add appropriate permissions and lifecycle policies for the storage buckets
+
+```sql
+-- RLS policies for tryon_sessions
+ALTER TABLE tryon_sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own sessions"
+  ON tryon_sessions
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own sessions"
+  ON tryon_sessions
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- RLS policies for tryon_files
+ALTER TABLE tryon_files ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own files"
+  ON tryon_files
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own files"
+  ON tryon_files
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- RLS policies for tryon_analytics
+ALTER TABLE tryon_analytics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Only admins can view analytics"
+  ON tryon_analytics
+  FOR SELECT
+  USING (auth.uid() IN (SELECT user_id FROM admin_users));
+
+CREATE POLICY "System can insert analytics"
+  ON tryon_analytics
+  FOR INSERT
+  WITH CHECK (true);
+```
+
+7. Create a script to set up the storage buckets:
+
+```typescript
+// scripts/setup-storage.ts
+import { createClient } from '@supabase/supabase-js';
+
+async function setupStorage() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Create the tryon-images bucket
+  const { error: bucketError } = await supabase.storage.createBucket('tryon-images', {
+    public: false,
+    fileSizeLimit: 10 * 1024 * 1024, // 10MB
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+  });
+  
+  if (bucketError) {
+    console.error('Failed to create bucket:', bucketError);
+    return;
+  }
+  
+  // Set up bucket policies
+  const { error: policyError } = await supabase.storage.from('tryon-images').createPolicy({
+    name: 'User Access',
+    definition: {
+      statements: [
+        {
+          effect: 'allow',
+          principal: { id: 'authenticated' },
+          actions: ['select'],
+          resources: ['objects/{user_id}/*'],
+        },
+      ],
+    },
+  });
+  
+  if (policyError) {
+    console.error('Failed to create bucket policy:', policyError);
+    return;
+  }
+  
+  console.log('Storage setup complete!');
+}
+
+setupStorage().catch(console.error);
+```
+
+8. Add a cleanup job for expired files:
+
+```typescript
+// scripts/cleanup-expired-files.ts
+import { createClient } from '@supabase/supabase-js';
+import { cleanupExpiredFiles } from '@/lib/tryon/storage';
+
+async function runCleanup() {
+  try {
+    await cleanupExpiredFiles();
+    console.log('Cleanup completed successfully');
+  } catch (error) {
+    console.error('Cleanup failed:', error);
+  }
+}
+
+runCleanup().catch(console.error);
+```
+
+# Test Strategy:
+Test the database schema and migrations:
+1. Create a test database environment
+2. Run the migration scripts to set up the tables
+3. Verify that the tables are created with the correct structure
+4. Test the RLS policies by attempting to access data as different users
+5. Verify that the storage buckets are created with the correct permissions
+6. Test the cleanup job by creating expired files and running the cleanup
+7. Verify that the database can handle the expected load by running performance tests

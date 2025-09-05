@@ -1,0 +1,364 @@
+# Task ID: 13
+# Title: Implement Results Display Components
+# Status: pending
+# Dependencies: 2
+# Priority: medium
+# Description: Create the components for displaying try-on results.
+# Details:
+Implement the results display components:
+
+1. Create the BeforeAfter component in components/tryon/results/BeforeAfter.tsx:
+```typescript
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+
+interface BeforeAfterProps {
+  beforeImage: string;
+  afterImage: string;
+}
+
+export function BeforeAfter({ beforeImage, afterImage }: BeforeAfterProps) {
+  const [showBefore, setShowBefore] = useState(false);
+  
+  return (
+    <div className="relative w-full aspect-[3/4] max-w-md mx-auto rounded-lg overflow-hidden">
+      <div className="absolute inset-0">
+        <Image
+          src={afterImage}
+          alt="After try-on"
+          fill
+          className="object-cover"
+          priority
+        />
+      </div>
+      
+      {showBefore && (
+        <div className="absolute inset-0">
+          <Image
+            src={beforeImage}
+            alt="Before try-on"
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+      )}
+      
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+        <button
+          className="bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium"
+          onMouseDown={() => setShowBefore(true)}
+          onMouseUp={() => setShowBefore(false)}
+          onMouseLeave={() => setShowBefore(false)}
+          onTouchStart={() => setShowBefore(true)}
+          onTouchEnd={() => setShowBefore(false)}
+        >
+          Hold to see original
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+2. Create the DownloadButton component in components/tryon/results/DownloadButton.tsx:
+```typescript
+'use client';
+
+import { useState } from 'react';
+
+interface DownloadButtonProps {
+  imageUrl: string;
+  fileName?: string;
+}
+
+export function DownloadButton({ imageUrl, fileName = 'tryon-result.jpg' }: DownloadButtonProps) {
+  const [downloading, setDownloading] = useState(false);
+  
+  const handleDownload = async () => {
+    setDownloading(true);
+    
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+    } finally {
+      setDownloading(false);
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+    >
+      {downloading ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          Downloading...
+        </>
+      ) : (
+        <>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Download Image
+        </>
+      )}
+    </button>
+  );
+}
+```
+
+3. Create the ShareOptions component in components/tryon/results/ShareOptions.tsx:
+```typescript
+'use client';
+
+import { useState } from 'react';
+
+interface ShareOptionsProps {
+  imageUrl: string;
+  title?: string;
+}
+
+export function ShareOptions({ imageUrl, title = 'Check out my virtual try-on!' }: ShareOptionsProps) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(imageUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          url: imageUrl,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+  
+  return (
+    <div className="flex gap-2">
+      <button
+        onClick={handleCopyLink}
+        className="flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+      >
+        {copied ? (
+          <>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Copied
+          </>
+        ) : (
+          <>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+            </svg>
+            Copy Link
+          </>
+        )}
+      </button>
+      
+      <button
+        onClick={handleShare}
+        className="flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+        </svg>
+        Share
+      </button>
+    </div>
+  );
+}
+```
+
+4. Create the QualityRating component in components/tryon/results/QualityRating.tsx:
+```typescript
+'use client';
+
+import { useState } from 'react';
+
+interface QualityRatingProps {
+  initialScore?: number;
+  onRate?: (score: number) => void;
+}
+
+export function QualityRating({ initialScore = 0, onRate }: QualityRatingProps) {
+  const [score, setScore] = useState(initialScore);
+  const [rated, setRated] = useState(false);
+  
+  const handleRate = (newScore: number) => {
+    setScore(newScore);
+    setRated(true);
+    if (onRate) {
+      onRate(newScore);
+    }
+  };
+  
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-gray-700">
+        {rated ? 'Thanks for your feedback!' : 'How does this result look?'}
+      </p>
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            onClick={() => handleRate(star)}
+            disabled={rated}
+            className="text-2xl"
+          >
+            {star <= score ? '★' : '☆'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+5. Create the TryOnResults container component in components/tryon/TryOnResults.tsx:
+```typescript
+'use client';
+
+import { BeforeAfter } from './results/BeforeAfter';
+import { DownloadButton } from './results/DownloadButton';
+import { ShareOptions } from './results/ShareOptions';
+import { QualityRating } from './results/QualityRating';
+import { Button } from '@/components/ui/button';
+
+interface TryOnResultsProps {
+  result: {
+    imageUrl: string;
+    originalUrls: {
+      person: string;
+      garment: string;
+    };
+    qualityScore: number;
+    confidence: number;
+    provider: string;
+  };
+  onStartNew: () => void;
+}
+
+export function TryOnResults({ result, onStartNew }: TryOnResultsProps) {
+  const handleRateQuality = async (score: number) => {
+    // In a real implementation, this would send the rating to the server
+    console.log('User rated quality:', score);
+  };
+  
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <BeforeAfter
+            beforeImage={result.originalUrls.person}
+            afterImage={result.imageUrl}
+          />
+          
+          <div className="mt-6 space-y-4">
+            <div className="flex flex-wrap gap-3 justify-center">
+              <DownloadButton imageUrl={result.imageUrl} />
+              <ShareOptions imageUrl={result.imageUrl} />
+            </div>
+            
+            <div className="text-center">
+              <Button
+                onClick={onStartNew}
+                variant="outline"
+                className="mt-2"
+              >
+                Try Another
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Your Virtual Try-On</h2>
+            <p className="text-gray-600">
+              Here's how the garment looks on you! Hold the "See Original" button to compare with your original photo.
+            </p>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium mb-3">Result Details</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Quality Score</p>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-blue-600 h-2.5 rounded-full" 
+                    style={{ width: `${result.qualityScore}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-700">Confidence</p>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-green-500 h-2.5 rounded-full" 
+                    style={{ width: `${result.confidence}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-700">AI Provider</p>
+                <p className="text-sm text-gray-600">{result.provider}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t pt-4">
+            <QualityRating onRate={handleRateQuality} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+6. Ensure all components are responsive and work well on both desktop and mobile devices
+7. Add proper error handling for image loading and other operations
+8. Implement accessibility features for all components
+
+# Test Strategy:
+Test the results display components:
+1. Create a test page that renders each component individually
+2. Test the BeforeAfter component with different images
+3. Verify that the DownloadButton correctly downloads images
+4. Test the ShareOptions component with different sharing methods
+5. Verify that the QualityRating component correctly tracks and reports ratings
+6. Test the TryOnResults container component with various result data
+7. Verify that all components are responsive and work well on different screen sizes
+8. Test accessibility features using automated tools and manual testing

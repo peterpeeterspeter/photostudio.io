@@ -1,0 +1,124 @@
+# Task ID: 11
+# Title: Implement Result API Endpoint
+# Status: pending
+# Dependencies: 10
+# Priority: high
+# Description: Create the API endpoint for retrieving try-on results.
+# Details:
+Implement the result API endpoint in app/api/tryon/result/[id]/route.ts:
+
+1. Create a Next.js API route handler for the GET /api/tryon/result/[id] endpoint
+2. Implement result retrieval from the database
+3. Return the result response according to the API specification
+4. Follow this implementation:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { TryOnResultResponse } from '@/types/tryon';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
+  try {
+    const jobId = params.id;
+
+    if (!jobId) {
+      return NextResponse.json(
+        { success: false, message: 'Missing job ID' },
+        { status: 400 }
+      );
+    }
+
+    // Get job from database
+    const { data: job, error } = await supabase
+      .from('tryon_sessions')
+      .select('*, garment_file:garment_file_id(storage_url), person_file:person_file_id(storage_url)')
+      .eq('id', jobId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { success: false, message: 'Job not found' },
+          { status: 404 }
+        );
+      }
+      throw error;
+    }
+
+    // Prepare the response based on job status
+    const response: TryOnResultResponse = {
+      jobId,
+      status: job.status,
+    };
+
+    // Add progress for processing jobs
+    if (job.status === 'processing') {
+      // Calculate progress based on time elapsed (simplified)
+      const startTime = new Date(job.created_at).getTime();
+      const currentTime = new Date().getTime();
+      const elapsedSeconds = (currentTime - startTime) / 1000;
+      const estimatedTime = 60; // seconds
+      const progress = Math.min(Math.round((elapsedSeconds / estimatedTime) * 100), 99);
+      
+      response.progress = progress;
+    }
+
+    // Add result for completed jobs
+    if (job.status === 'completed' && job.result_url) {
+      response.result = {
+        imageUrl: job.result_url,
+        thumbnailUrl: job.result_url, // Could generate a thumbnail in production
+        originalUrls: {
+          person: job.person_file?.storage_url || '',
+          garment: job.garment_file?.storage_url || '',
+        },
+        processingTime: job.processing_time || 0,
+        qualityScore: job.quality_score || 0,
+        confidence: job.confidence || 0,
+        provider: job.provider || 'unknown',
+      };
+    }
+
+    // Add error for failed jobs
+    if (job.status === 'failed') {
+      response.error = {
+        code: 'processing_failed',
+        message: job.error || 'Processing failed',
+        retryable: true,
+      };
+    }
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Result retrieval error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to retrieve result' 
+      },
+      { status: 500 }
+    );
+  }
+}
+```
+
+5. Implement proper error handling for result retrieval
+6. Add progress calculation for processing jobs
+7. Return appropriate responses for different job statuses
+
+# Test Strategy:
+Test the result API endpoint:
+1. Create a test client that sends result requests to the endpoint
+2. Test with various job IDs in different states (queued, processing, completed, failed)
+3. Verify that the endpoint returns the correct responses for each job state
+4. Test error handling by sending invalid job IDs
+5. Create integration tests that follow the full flow from upload to processing to result retrieval
+6. Verify that progress calculation works correctly for processing jobs

@@ -1,0 +1,214 @@
+# Task ID: 8
+# Title: Implement Storage Service
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Create the storage service for handling file uploads and retrievals.
+# Details:
+Implement the storage service in lib/tryon/storage.ts:
+
+1. Create functions for uploading, retrieving, and managing files
+2. Integrate with the existing Supabase storage or another appropriate storage solution
+3. Implement file naming and organization strategies
+4. Add expiration and cleanup functionality
+5. Follow this implementation:
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+interface UploadOptions {
+  type: 'garment' | 'person';
+  sessionId: string;
+  metadata?: Record<string, any>;
+  expiresIn?: number; // seconds
+}
+
+export async function uploadToStorage(
+  file: File,
+  options: UploadOptions
+): Promise<{ fileId: string; previewUrl: string }> {
+  const { type, sessionId, metadata = {}, expiresIn = 86400 } = options;
+  
+  // Generate a unique file ID
+  const fileId = uuidv4();
+  const fileExt = file.name.split('.').pop() || 'jpg';
+  const fileName = `${fileId}.${fileExt}`;
+  
+  // Determine storage path
+  const storagePath = `tryon/${sessionId}/${type}/${fileName}`;
+  
+  // Convert File to ArrayBuffer for upload
+  const arrayBuffer = await file.arrayBuffer();
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from('uploads')
+    .upload(storagePath, arrayBuffer, {
+      contentType: file.type,
+      upsert: false,
+      cacheControl: `max-age=${expiresIn}`,
+    });
+  
+  if (error) {
+    console.error('Storage upload error:', error);
+    throw new Error(`Failed to upload file: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('uploads')
+    .getPublicUrl(storagePath);
+  
+  // Store metadata in database
+  await storeFileMetadata(fileId, {
+    originalName: file.name,
+    type,
+    sessionId,
+    storagePath,
+    size: file.size,
+    mimeType: file.type,
+    ...metadata,
+  });
+  
+  return {
+    fileId,
+    previewUrl: urlData.publicUrl,
+  };
+}
+
+export async function getFileUrl(fileId: string): Promise<string> {
+  // Get file metadata from database
+  const metadata = await getFileMetadata(fileId);
+  
+  if (!metadata) {
+    throw new Error(`File not found: ${fileId}`);
+  }
+  
+  // Get public URL
+  const { data } = supabase.storage
+    .from('uploads')
+    .getPublicUrl(metadata.storagePath);
+  
+  return data.publicUrl;
+}
+
+export async function deleteFile(fileId: string): Promise<void> {
+  // Get file metadata from database
+  const metadata = await getFileMetadata(fileId);
+  
+  if (!metadata) {
+    return; // File already deleted or doesn't exist
+  }
+  
+  // Delete from storage
+  const { error } = await supabase.storage
+    .from('uploads')
+    .remove([metadata.storagePath]);
+  
+  if (error) {
+    console.error('Storage delete error:', error);
+    throw new Error(`Failed to delete file: ${error.message}`);
+  }
+  
+  // Delete metadata from database
+  await deleteFileMetadata(fileId);
+}
+
+async function storeFileMetadata(
+  fileId: string,
+  metadata: Record<string, any>
+): Promise<void> {
+  const { error } = await supabase
+    .from('tryon_files')
+    .insert({
+      file_id: fileId,
+      user_id: metadata.userId || null,
+      type: metadata.type,
+      original_name: metadata.originalName,
+      file_size: metadata.size,
+      mime_type: metadata.mimeType,
+      dimensions: metadata.dimensions || null,
+      storage_url: metadata.storagePath,
+      validation_result: metadata.validationResult || null,
+    });
+  
+  if (error) {
+    console.error('Metadata storage error:', error);
+    throw new Error(`Failed to store file metadata: ${error.message}`);
+  }
+}
+
+async function getFileMetadata(fileId: string): Promise<Record<string, any> | null> {
+  const { data, error } = await supabase
+    .from('tryon_files')
+    .select('*')
+    .eq('file_id', fileId)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null; // Not found
+    }
+    throw new Error(`Failed to get file metadata: ${error.message}`);
+  }
+  
+  return data;
+}
+
+async function deleteFileMetadata(fileId: string): Promise<void> {
+  const { error } = await supabase
+    .from('tryon_files')
+    .delete()
+    .eq('file_id', fileId);
+  
+  if (error) {
+    console.error('Metadata delete error:', error);
+    throw new Error(`Failed to delete file metadata: ${error.message}`);
+  }
+}
+
+export async function cleanupExpiredFiles(): Promise<void> {
+  // Get files older than 24 hours
+  const expiryTime = new Date();
+  expiryTime.setHours(expiryTime.getHours() - 24);
+  
+  const { data, error } = await supabase
+    .from('tryon_files')
+    .select('file_id')
+    .lt('created_at', expiryTime.toISOString());
+  
+  if (error) {
+    console.error('Cleanup query error:', error);
+    throw new Error(`Failed to query expired files: ${error.message}`);
+  }
+  
+  // Delete each expired file
+  for (const file of data || []) {
+    try {
+      await deleteFile(file.file_id);
+    } catch (err) {
+      console.error(`Failed to delete expired file ${file.file_id}:`, err);
+    }
+  }
+}
+```
+
+6. Implement proper error handling for storage operations
+7. Add functions for cleaning up expired files
+8. Store file metadata in the database for tracking and retrieval
+
+# Test Strategy:
+Test the storage service:
+1. Create unit tests for each function in the storage service
+2. Test file uploads with various file types and sizes
+3. Test file retrieval and URL generation
+4. Test file deletion and cleanup
+5. Verify that metadata is correctly stored and retrieved
+6. Test error handling for various failure scenarios
+7. Create a simple test script that exercises the full lifecycle of a file (upload, retrieve, delete)

@@ -1,0 +1,190 @@
+# Task ID: 5
+# Title: Implement TryOnUpload Container Component
+# Status: pending
+# Dependencies: 3, 4
+# Priority: high
+# Description: Create the TryOnUpload container component that combines the ImageUpload and GarmentTypeSelector components.
+# Details:
+Implement the TryOnUpload container component in components/tryon/TryOnUpload.tsx:
+
+1. Create a component that combines the ImageUpload and GarmentTypeSelector components
+2. Implement the upload flow for both garment and person images
+3. Add form validation and error handling
+4. Implement the API calls to upload images and start processing
+5. Follow the PRD specification:
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { ImageUpload } from './upload/ImageUpload';
+import { GarmentTypeSelector } from './upload/GarmentTypeSelector';
+import { Button } from '@/components/ui/button';
+import { GarmentType } from '@/types/tryon';
+
+interface TryOnUploadProps {
+  onProcessStart: (jobId: string) => void;
+}
+
+export function TryOnUpload({ onProcessStart }: TryOnUploadProps) {
+  const [garmentFile, setGarmentFile] = useState<File | null>(null);
+  const [personFile, setPersonFile] = useState<File | null>(null);
+  const [garmentType, setGarmentType] = useState<GarmentType>('shirt');
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleProcess = async () => {
+    if (!garmentFile || !personFile) return;
+    
+    setProcessing(true);
+    setError(null);
+    
+    try {
+      // Upload garment image
+      const garmentFormData = new FormData();
+      garmentFormData.append('file', garmentFile);
+      garmentFormData.append('type', 'garment');
+      garmentFormData.append('garmentType', garmentType);
+      
+      const garmentUploadRes = await fetch('/api/tryon/upload', {
+        method: 'POST',
+        body: garmentFormData,
+      });
+      
+      if (!garmentUploadRes.ok) {
+        throw new Error('Failed to upload garment image');
+      }
+      
+      const garmentUpload = await garmentUploadRes.json();
+
+      if (!garmentUpload.success) {
+        throw new Error(garmentUpload.message || 'Garment upload failed');
+      }
+
+      // Upload person image
+      const personFormData = new FormData();
+      personFormData.append('file', personFile);
+      personFormData.append('type', 'person');
+      
+      const personUploadRes = await fetch('/api/tryon/upload', {
+        method: 'POST',
+        body: personFormData,
+      });
+      
+      if (!personUploadRes.ok) {
+        throw new Error('Failed to upload person image');
+      }
+      
+      const personUpload = await personUploadRes.json();
+
+      if (!personUpload.success) {
+        throw new Error(personUpload.message || 'Person upload failed');
+      }
+
+      // Start processing
+      const processRes = await fetch('/api/tryon/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          garmentFileId: garmentUpload.fileId,
+          personFileId: personUpload.fileId,
+          options: {
+            garmentType,
+            quality: 'standard'
+          }
+        }),
+      });
+      
+      if (!processRes.ok) {
+        throw new Error('Failed to start processing');
+      }
+      
+      const processResponse = await processRes.json();
+
+      if (processResponse.jobId) {
+        onProcessStart(processResponse.jobId);
+      } else {
+        throw new Error('Failed to start processing');
+      }
+      
+    } catch (error) {
+      console.error('Try-on processing failed:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const canProcess = garmentFile && personFile && !processing;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Garment Upload */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">1. Upload Garment</h2>
+          <ImageUpload
+            type="garment"
+            onUpload={setGarmentFile}
+            currentFile={garmentFile}
+          />
+        </div>
+        
+        <GarmentTypeSelector
+          value={garmentType}
+          onChange={setGarmentType}
+        />
+      </div>
+
+      {/* Person Upload */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">2. Upload Your Photo</h2>
+          <ImageUpload
+            type="person"
+            onUpload={setPersonFile}
+            currentFile={personFile}
+          />
+        </div>
+
+        <div className="pt-4">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+          
+          <Button
+            onClick={handleProcess}
+            disabled={!canProcess}
+            className="w-full py-3 text-lg"
+            size="lg"
+          >
+            {processing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Processing...
+              </>
+            ) : (
+              'Start Virtual Try-On'
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+6. Add proper error handling for API calls
+7. Implement loading states for the upload and processing steps
+
+# Test Strategy:
+Create a test page that renders the TryOnUpload component. Verify that:
+1. Both ImageUpload components and the GarmentTypeSelector render correctly
+2. Files can be uploaded for both garment and person images
+3. The process button is disabled until both images are uploaded
+4. API calls are made correctly when the process button is clicked
+5. Loading states are displayed during processing
+6. Errors are handled and displayed appropriately
+7. The onProcessStart callback is called with the correct jobId when processing starts successfully

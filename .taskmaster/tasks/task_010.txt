@@ -1,0 +1,161 @@
+# Task ID: 10
+# Title: Implement Processing API Endpoint
+# Status: pending
+# Dependencies: 7, 8, 9
+# Priority: high
+# Description: Create the API endpoint for processing try-on requests.
+# Details:
+Implement the processing API endpoint in app/api/tryon/process/route.ts:
+
+1. Create a Next.js API route handler for the POST /api/tryon/process endpoint
+2. Implement the processing logic using the AI service orchestrator
+3. Handle job creation and tracking
+4. Return the processing response according to the API specification
+5. Follow this implementation:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getFileUrl } from '@/lib/tryon/storage';
+import { TryOnServiceOrchestrator } from '@/lib/tryon/ai-services/service-orchestrator';
+import { TryOnProcessRequest, TryOnProcessResponse } from '@/types/tryon';
+import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  try {
+    const body: TryOnProcessRequest = await req.json();
+    const { garmentFileId, personFileId, userId, options } = body;
+
+    if (!garmentFileId || !personFileId) {
+      return NextResponse.json(
+        { success: false, message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Generate a job ID
+    const jobId = uuidv4();
+
+    // Create a job record in the database
+    const { error: insertError } = await supabase
+      .from('tryon_sessions')
+      .insert({
+        id: jobId,
+        user_id: userId || null,
+        status: 'queued',
+        garment_file_id: garmentFileId,
+        person_file_id: personFileId,
+        options: options || {},
+      });
+
+    if (insertError) {
+      console.error('Job creation error:', insertError);
+      return NextResponse.json(
+        { success: false, message: 'Failed to create job' },
+        { status: 500 }
+      );
+    }
+
+    // Start processing in the background
+    processJob(jobId, garmentFileId, personFileId, options).catch(error => {
+      console.error(`Background processing error for job ${jobId}:`, error);
+      updateJobStatus(jobId, 'failed', { error: error.message });
+    });
+
+    // Return the response
+    const response: TryOnProcessResponse = {
+      jobId,
+      estimatedTime: 60, // seconds
+      status: 'queued',
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Processing error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Processing failed' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+async function processJob(
+  jobId: string,
+  garmentFileId: string,
+  personFileId: string,
+  options?: any
+): Promise<void> {
+  try {
+    // Update job status to processing
+    await updateJobStatus(jobId, 'processing');
+
+    // Get file URLs
+    const garmentUrl = await getFileUrl(garmentFileId);
+    const personUrl = await getFileUrl(personFileId);
+
+    // Process the try-on request
+    const orchestrator = new TryOnServiceOrchestrator();
+    const result = await orchestrator.processTryOn(
+      personUrl,
+      garmentUrl,
+      options || {}
+    );
+
+    // Update job status to completed
+    await updateJobStatus(jobId, 'completed', {
+      result_url: result.imageUrl,
+      processing_time: result.processingTime,
+      quality_score: result.qualityScore,
+      confidence: result.confidence,
+      provider: result.provider,
+    });
+  } catch (error) {
+    console.error(`Processing error for job ${jobId}:`, error);
+    await updateJobStatus(jobId, 'failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+async function updateJobStatus(
+  jobId: string,
+  status: string,
+  additionalData: Record<string, any> = {}
+): Promise<void> {
+  const { error } = await supabase
+    .from('tryon_sessions')
+    .update({
+      status,
+      ...additionalData,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', jobId);
+
+  if (error) {
+    console.error(`Failed to update job ${jobId} status:`, error);
+  }
+}
+```
+
+6. Implement background processing to handle long-running tasks
+7. Add job status tracking and updates
+8. Implement proper error handling for processing failures
+
+# Test Strategy:
+Test the processing API endpoint:
+1. Create a test client that sends processing requests to the endpoint
+2. Test with valid and invalid request parameters
+3. Verify that jobs are created and tracked correctly
+4. Test error handling by sending malformed requests
+5. Create integration tests that follow the full flow from upload to processing
+6. Verify that background processing works correctly
+7. Test job status updates and error handling

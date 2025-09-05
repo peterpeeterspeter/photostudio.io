@@ -1,0 +1,100 @@
+# Task ID: 7
+# Title: Implement Upload API Endpoint
+# Status: pending
+# Dependencies: 2, 6
+# Priority: high
+# Description: Create the API endpoint for uploading garment and person images.
+# Details:
+Implement the upload API endpoint in app/api/tryon/upload/route.ts:
+
+1. Create a Next.js API route handler for the POST /api/tryon/upload endpoint
+2. Implement file upload handling with proper validation
+3. Store uploaded files in the appropriate storage location
+4. Return the upload response according to the API specification
+5. Follow this implementation:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { TryOnValidation } from '@/lib/tryon/validation';
+import { uploadToStorage } from '@/lib/tryon/storage';
+import { TryOnUploadRequest, TryOnUploadResponse } from '@/types/tryon';
+
+export const config = {
+  api: {
+    bodyParser: false, // Handle file uploads manually
+  },
+};
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  try {
+    // Parse the multipart form data
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const type = formData.get('type') as 'garment' | 'person';
+    const sessionId = formData.get('sessionId') as string || 'anonymous';
+    const options = {
+      garmentType: formData.get('garmentType') as string || undefined,
+      personPose: formData.get('personPose') as string || undefined,
+    };
+
+    if (!file || !type) {
+      return NextResponse.json(
+        { success: false, message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate the file
+    const validator = new TryOnValidation();
+    const validationResult = type === 'garment'
+      ? await validator.validateGarmentImage(file)
+      : await validator.validatePersonImage(file);
+
+    // Get file metadata
+    const metadata = {
+      dimensions: validationResult.dimensions || { width: 0, height: 0 },
+      fileSize: file.size,
+      detectedType: validationResult.detectedType,
+    };
+
+    // Upload the file to storage
+    const { fileId, previewUrl } = await uploadToStorage(file, {
+      type,
+      sessionId,
+      metadata,
+    });
+
+    // Return the response
+    const response: TryOnUploadResponse = {
+      success: true,
+      fileId,
+      previewUrl,
+      validation: validationResult,
+      metadata,
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Upload error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Upload failed' 
+      },
+      { status: 500 }
+    );
+  }
+}
+```
+
+6. Implement proper error handling for file uploads
+7. Add validation for file types, sizes, and content
+8. Store uploaded files with unique IDs and session tracking
+
+# Test Strategy:
+Test the upload API endpoint:
+1. Create a test client that sends various file uploads to the endpoint
+2. Test with valid and invalid file types, sizes, and content
+3. Verify that the endpoint returns the correct responses for successful and failed uploads
+4. Check that uploaded files are stored correctly and accessible via the returned URLs
+5. Test error handling by sending malformed requests and verifying appropriate error responses

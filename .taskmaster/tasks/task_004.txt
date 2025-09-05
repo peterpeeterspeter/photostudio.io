@@ -1,0 +1,76 @@
+# Task ID: 4
+# Title: Implement GarmentTypeSelector Component
+# Status: pending
+# Dependencies: 1, 2
+# Priority: medium
+# Description: Create the GarmentTypeSelector component for selecting the type of garment to be tried on.
+# Details:
+Implement the GarmentTypeSelector component in components/tryon/upload/GarmentTypeSelector.tsx:
+
+1. Create a component that allows users to select from the available garment types: 'shirt', 'dress', 'pants', 'jacket', 'hoodie'
+2. Use Tailwind CSS for styling consistent with the existing Photostudio.io design system
+3. Include visual icons for each garment type to make selection intuitive
+4. Implement the component with the following interface:
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { GarmentType } from '@/types/tryon';
+
+interface GarmentTypeSelectorProps {
+  value: GarmentType;
+  onChange: (type: GarmentType) => void;
+}
+
+interface GarmentOption {
+  value: GarmentType;
+  label: string;
+  icon: string; // Emoji or icon class
+}
+
+export function GarmentTypeSelector({ value, onChange }: GarmentTypeSelectorProps) {
+  const options: GarmentOption[] = [
+    { value: 'shirt', label: 'Shirt/Top', icon: '👕' },
+    { value: 'dress', label: 'Dress', icon: '👗' },
+    { value: 'pants', label: 'Pants', icon: '👖' },
+    { value: 'jacket', label: 'Jacket', icon: '🧥' },
+    { value: 'hoodie', label: 'Hoodie', icon: '🧥' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-medium text-gray-700">Garment Type</h3>
+      <div className="grid grid-cols-5 gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`
+              flex flex-col items-center justify-center p-3 rounded-lg transition-all
+              ${value === option.value
+                ? 'bg-blue-100 border-blue-500 border-2 text-blue-700'
+                : 'bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700'}
+            `}
+          >
+            <span className="text-2xl mb-1">{option.icon}</span>
+            <span className="text-xs font-medium">{option.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+5. Ensure the component is responsive and works well on both desktop and mobile devices
+6. Add appropriate ARIA attributes for accessibility
+
+# Test Strategy:
+Create a test page that renders the GarmentTypeSelector component. Verify that:
+1. All garment types are displayed correctly with their icons
+2. Selecting a garment type updates the UI to show it as selected
+3. The onChange callback is called with the correct garment type
+4. The component is responsive and displays correctly on different screen sizes
+5. The component is accessible according to WCAG standards

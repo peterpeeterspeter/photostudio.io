@@ -1,0 +1,183 @@
+# Task ID: 6
+# Title: Implement Image Validation Service
+# Status: pending
+# Dependencies: 2
+# Priority: medium
+# Description: Create the validation service for checking uploaded garment and person images.
+# Details:
+Implement the TryOnValidation class in lib/tryon/validation.ts:
+
+1. Create methods for validating both garment and person images
+2. Implement basic file validation (size, format, dimensions)
+3. Add image analysis functionality to detect garments and faces
+4. Return validation results with issues and suggestions
+5. Follow the PRD specification:
+
+```typescript
+import { ValidationResult } from '@/types/tryon';
+
+export class TryOnValidation {
+  async validateGarmentImage(file: File): Promise<ValidationResult> {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+
+    // Basic file validation
+    if (file.size > 10 * 1024 * 1024) {
+      issues.push('File size exceeds 10MB limit');
+    }
+
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      issues.push('Invalid file type. Please upload JPG, PNG, or WebP');
+    }
+
+    // Image analysis
+    try {
+      const analysis = await this.analyzeImage(file);
+      
+      if (analysis.dimensions.width < 512 || analysis.dimensions.height < 512) {
+        issues.push('Image resolution too low (minimum 512x512)');
+      }
+
+      if (!analysis.hasGarment) {
+        issues.push('No clear garment detected in image');
+        suggestions.push('Ensure the garment is the main subject');
+        suggestions.push('Use flat lay or mannequin shots for best results');
+      }
+
+      if (analysis.hasMultipleGarments) {
+        suggestions.push('Multiple garments detected - focus on one item');
+      }
+
+      return {
+        isValid: issues.length === 0,
+        confidence: analysis.confidence,
+        issues,
+        suggestions,
+        detectedType: analysis.garmentType
+      };
+    } catch (error) {
+      console.error('Image analysis failed:', error);
+      issues.push('Failed to analyze image');
+      return {
+        isValid: false,
+        confidence: 0,
+        issues,
+        suggestions: ['Try uploading a clearer image of the garment']
+      };
+    }
+  }
+
+  async validatePersonImage(file: File): Promise<ValidationResult> {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+
+    // Basic file validation
+    if (file.size > 10 * 1024 * 1024) {
+      issues.push('File size exceeds 10MB limit');
+    }
+
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      issues.push('Invalid file type. Please upload JPG, PNG, or WebP');
+    }
+
+    try {
+      const analysis = await this.analyzeImage(file);
+
+      if (analysis.dimensions.width < 512 || analysis.dimensions.height < 512) {
+        issues.push('Image resolution too low (minimum 512x512)');
+      }
+
+      if (!analysis.hasFace) {
+        issues.push('No face detected in image');
+        suggestions.push('Ensure your face is clearly visible');
+      }
+
+      if (!analysis.hasFullBody) {
+        suggestions.push('Full body shots work better for try-on');
+      }
+
+      if (analysis.hasMultiplePeople) {
+        issues.push('Multiple people detected');
+        suggestions.push('Use photos with only one person');
+      }
+
+      return {
+        isValid: issues.length === 0,
+        confidence: analysis.confidence,
+        issues,
+        suggestions
+      };
+    } catch (error) {
+      console.error('Image analysis failed:', error);
+      issues.push('Failed to analyze image');
+      return {
+        isValid: false,
+        confidence: 0,
+        issues,
+        suggestions: ['Try uploading a clearer photo of yourself']
+      };
+    }
+  }
+
+  private async analyzeImage(file: File): Promise<{
+    dimensions: { width: number; height: number };
+    hasGarment?: boolean;
+    hasMultipleGarments?: boolean;
+    garmentType?: string;
+    hasFace?: boolean;
+    hasFullBody?: boolean;
+    hasMultiplePeople?: boolean;
+    confidence: number;
+  }> {
+    // For MVP, implement basic image analysis
+    // In a real implementation, this would use computer vision APIs
+    
+    // Get image dimensions
+    const dimensions = await this.getImageDimensions(file);
+    
+    // For MVP, return placeholder values
+    // In production, integrate with a proper image analysis service
+    return {
+      dimensions,
+      hasGarment: true,
+      hasMultipleGarments: false,
+      garmentType: 'shirt',
+      hasFace: true,
+      hasFullBody: true,
+      hasMultiplePeople: false,
+      confidence: 0.9
+    };
+  }
+
+  private getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.width, height: img.height });
+        URL.revokeObjectURL(img.src); // Clean up
+      };
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+        URL.revokeObjectURL(img.src); // Clean up
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+}
+```
+
+6. For the MVP, implement basic image analysis with placeholders for more advanced features
+7. Add proper error handling for image analysis failures
+8. Include utility methods for getting image dimensions and other metadata
+
+# Test Strategy:
+Create unit tests for the TryOnValidation class:
+1. Test basic file validation with various file sizes and types
+2. Test image dimension validation with images of different resolutions
+3. Mock the analyzeImage method to test different scenarios (garment detected, face detected, etc.)
+4. Test error handling for image analysis failures
+5. Create a simple test page that uses the validation service with real images to verify its functionality

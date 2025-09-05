@@ -1,0 +1,93 @@
+# Task ID: 9
+# Title: Implement AI Service Orchestrator
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Create the AI service orchestrator for managing multiple AI providers for the try-on feature.
+# Details:
+Implement the TryOnServiceOrchestrator class in lib/tryon/ai-services/service-orchestrator.ts:
+
+1. Create a service orchestrator that manages multiple AI providers
+2. Implement fallback logic for when a provider fails
+3. Add quality checking for results
+4. Follow the PRD specification:
+
+```typescript
+import { NanoBananaService } from './nano-banana';
+import { FalTryOnService } from './fashn';
+import { ReplicateService } from './replicate';
+import { TryOnOptions, TryOnResult } from '@/types/tryon';
+
+interface AIService {
+  processTryOn(
+    personImage: string,
+    garmentImage: string,
+    options: TryOnOptions
+  ): Promise<TryOnResult>;
+}
+
+export class TryOnServiceOrchestrator {
+  private services: AIService[] = [
+    new NanoBananaService(),      // Primary: Direct Gemini
+    new FalTryOnService(),        // Fallback: FAL.AI Nano Banana
+    new ReplicateService(),       // Additional fallback
+  ];
+  
+  async processTryOn(
+    personImage: string, 
+    garmentImage: string, 
+    options: TryOnOptions
+  ): Promise<TryOnResult> {
+    const errors: Error[] = [];
+    
+    for (const service of this.services) {
+      try {
+        console.log(`Trying ${service.constructor.name}...`);
+        const result = await service.processTryOn(personImage, garmentImage, options);
+        
+        if (this.isAcceptableQuality(result)) {
+          console.log(`Success with ${service.constructor.name}`);
+          return {
+            ...result,
+            provider: service.constructor.name
+          };
+        } else {
+          console.warn(`${service.constructor.name} returned low quality result, trying next service`);
+          errors.push(new Error(`${service.constructor.name} returned low quality result`));
+        }
+      } catch (error) {
+        console.warn(`Service ${service.constructor.name} failed:`, error);
+        errors.push(error instanceof Error ? error : new Error(`${service.constructor.name} failed`));
+        continue;
+      }
+    }
+    
+    // If we get here, all services failed
+    const errorMessages = errors.map(e => e.message).join('; ');
+    throw new Error(`All AI services failed to process try-on request: ${errorMessages}`);
+  }
+  
+  private isAcceptableQuality(result: TryOnResult): boolean {
+    return result.confidence > 0.7 && result.qualityScore > 0.6;
+  }
+}
+```
+
+5. Implement the individual AI service classes:
+   - NanoBananaService (lib/tryon/ai-services/nano-banana.ts)
+   - FalTryOnService (lib/tryon/ai-services/fashn.ts)
+   - ReplicateService (lib/tryon/ai-services/replicate.ts)
+
+6. Add proper error handling and logging
+7. Implement quality checking for results
+8. Add retry logic for transient failures
+
+# Test Strategy:
+Test the AI service orchestrator:
+1. Create unit tests for the TryOnServiceOrchestrator class
+2. Mock the individual AI services to test different scenarios
+3. Test the fallback logic by making the primary service fail
+4. Test quality checking with various result qualities
+5. Test error handling when all services fail
+6. Create integration tests that use the real AI services with test images
+7. Verify that the orchestrator correctly selects the best result

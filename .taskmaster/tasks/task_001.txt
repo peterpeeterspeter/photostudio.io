@@ -1,0 +1,169 @@
+# Task ID: 1
+# Title: Create File Structure for Try-On Feature
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Set up the necessary file structure for the Virtual Try-On feature according to the PRD specifications.
+# Details:
+Create the following directory structure within the existing Photostudio.io project:
+
+```
+app/
+├── tryon/
+│   ├── page.tsx                 # Main try-on interface
+│   ├── upload/
+│   │   └── page.tsx            # Upload wizard
+│   ├── processing/
+│   │   └── [id]/
+│   │       └── page.tsx        # Processing status
+│   └── result/
+│       └── [id]/
+│           └── page.tsx        # Results page
+├── api/
+│   └── tryon/
+│       ├── upload/
+│       │   └── route.ts        # File upload handler
+│       ├── process/
+│       │   └── route.ts        # AI processing
+│       ├── result/
+│       │   └── [id]/
+│       │       └── route.ts    # Result fetching
+│       └── history/
+│           └── route.ts        # User history
+components/
+├── tryon/
+│   ├── upload/
+│   │   ├── ImageUpload.tsx
+│   │   ├── GarmentTypeSelector.tsx
+│   │   └── ValidationDisplay.tsx
+│   ├── processing/
+│   │   ├── ProcessingStatus.tsx
+│   │   ├── ProgressBar.tsx
+│   │   └── ErrorDisplay.tsx
+│   └── results/
+│       ├── BeforeAfter.tsx
+│       ├── DownloadButton.tsx
+│       ├── ShareOptions.tsx
+│       └── QualityRating.tsx
+lib/
+├── tryon/
+│   ├── ai-services/
+│   │   ├── nano-banana.ts
+│   │   ├── fashn.ts
+│   │   ├── replicate.ts
+│   │   └── fallback.ts
+│   ├── upload-handler.ts
+│   ├── image-processing.ts
+│   ├── validation.ts
+│   └── storage.ts
+types/
+├── tryon.ts
+└── ai-services.ts
+```
+
+Ensure all directories are properly created and add placeholder files with basic exports to maintain the structure. This task is foundational and should be completed first to provide the framework for all subsequent development tasks.
+<info added on 2025-09-05T14:36:15.097Z>
+## Next.js 15 App Router Best Practices for Implementation
+
+When implementing the file structure for this task, consider these Next.js 15 App Router best practices:
+
+1. **Add layout.tsx files** in key directories:
+   - `app/tryon/layout.tsx` - Create a layout wrapper for all try-on pages
+   - This provides consistent UI elements across the try-on feature
+
+2. **Implement route groups** for better organization:
+   - Consider using route groups like `(auth)` or `(feature)` to organize related routes
+   - Example: `app/(tryon)/upload/page.tsx` instead of `app/tryon/upload/page.tsx`
+
+3. **Server vs. Client Components**:
+   - Mark interactive components with `"use client"` directive
+   - Keep page.tsx files as server components where possible for better performance
+   - Example components that should be client components:
+     - ImageUpload.tsx
+     - GarmentTypeSelector.tsx
+     - BeforeAfter.tsx
+
+4. **Add loading.tsx and error.tsx files** in key directories:
+   - `app/tryon/processing/[id]/loading.tsx`
+   - `app/tryon/result/[id]/error.tsx`
+
+5. **Implement metadata exports** in page files for better SEO:
+   ```typescript
+   export const metadata = {
+     title: 'Virtual Try-On | Photostudio.io',
+     description: 'Try on virtual garments with our AI-powered tool'
+   };
+   ```
+
+6. **Consider adding placeholder files** with basic implementations rather than empty files to make testing more effective.
+</info added on 2025-09-05T14:36:15.097Z>
+
+# Test Strategy:
+Verify that all directories and files exist in the correct structure. Run a simple check script that traverses the directory structure and confirms all required files are present with basic exports or placeholder content.
+
+# Subtasks:
+## 1. Create App Route Structure [pending]
+### Dependencies: None
+### Description: Set up the main app router structure for the virtual try-on feature with all necessary page components
+### Details:
+Create the following directory structure with basic page components:
+- app/tryon/page.tsx (main interface)
+- app/tryon/layout.tsx (shared layout)
+- app/tryon/upload/page.tsx (upload wizard)
+- app/tryon/processing/[id]/page.tsx (processing status)
+- app/tryon/result/[id]/page.tsx (results page)
+
+Each page.tsx should include basic TypeScript component structure and placeholder content.
+
+## 2. Create API Route Structure [pending]
+### Dependencies: 1.1
+### Description: Set up the API routes for handling virtual try-on requests
+### Details:
+Create the following API route structure:
+- app/api/tryon/upload/route.ts (image upload endpoint)
+- app/api/tryon/process/route.ts (processing job endpoint)
+- app/api/tryon/result/[jobId]/route.ts (results endpoint)
+- app/api/tryon/privacy/route.ts (privacy-related endpoints)
+
+Each route.ts should include basic GET/POST handler structure with TypeScript.
+
+## 3. Create Component Directory Structure [pending]
+### Dependencies: 1.1
+### Description: Set up the component organization for the virtual try-on feature
+### Details:
+Create the following component directory structure:
+- components/tryon/upload/ (upload-related components)
+- components/tryon/processing/ (processing-related components)
+- components/tryon/results/ (results-related components)
+
+Create placeholder component files:
+- ImageUpload.tsx, GarmentTypeSelector.tsx, ValidationDisplay.tsx (in upload/)
+- ProcessingStatus.tsx, JobProgress.tsx (in processing/)
+- TryOnResults.tsx, BeforeAfter.tsx, DownloadButton.tsx (in results/)
+
+## 4. Create Library and Utility Structure [pending]
+### Dependencies: 1.1, 1.2, 1.3
+### Description: Set up the lib/tryon directory with services, utilities, and type definitions
+### Details:
+Create the following lib structure:
+- lib/tryon/api/ (API client functions)
+- lib/tryon/models/ (type definitions)
+- lib/tryon/services/ (service classes)
+- lib/tryon/utils/ (utility functions)
+
+Create initial files:
+- types/tryon.ts and types/ai-services.ts (type definitions)
+- lib/tryon/models/TryOnTypes.ts
+- lib/tryon/services/TryOnService.ts
+- lib/tryon/utils/imageProcessing.ts
+
+## 5. Verify Structure and Navigation [pending]
+### Dependencies: 1.1, 1.2, 1.3, 1.4
+### Description: Test that all routes are accessible and the file structure is correctly implemented
+### Details:
+- Verify all directories and files are created correctly
+- Test navigation between routes to ensure proper routing
+- Check that routes are accessible and return expected components
+- Ensure file structure matches PRD specifications
+- Test that placeholder components render without errors
+

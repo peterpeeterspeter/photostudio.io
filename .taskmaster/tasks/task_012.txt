@@ -1,0 +1,159 @@
+# Task ID: 12
+# Title: Implement Processing Status Component
+# Status: pending
+# Dependencies: 2, 11
+# Priority: medium
+# Description: Create the ProcessingStatus component for displaying the status of a try-on job.
+# Details:
+Implement the ProcessingStatus component in components/tryon/processing/ProcessingStatus.tsx:
+
+1. Create a component that displays the status of a try-on job
+2. Implement polling for job status updates
+3. Display progress and estimated time
+4. Handle completion and error states
+5. Follow this implementation:
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { ProgressBar } from './ProgressBar';
+import { ErrorDisplay } from './ErrorDisplay';
+import { TryOnResultResponse, TryOnError } from '@/types/tryon';
+
+interface ProcessingStatusProps {
+  jobId: string;
+  onComplete: (result: any) => void;
+}
+
+export function ProcessingStatus({ jobId, onComplete }: ProcessingStatusProps) {
+  const [status, setStatus] = useState<'processing' | 'completed' | 'failed'>('processing');
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<TryOnError | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Start polling for status updates
+    const interval = setInterval(checkStatus, 2000);
+    setPollingInterval(interval);
+
+    // Initial status check
+    checkStatus();
+
+    // Cleanup on unmount
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [jobId]);
+
+  const checkStatus = async () => {
+    try {
+      const response = await fetch(`/api/tryon/result/${jobId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch job status');
+      }
+      
+      const data: TryOnResultResponse = await response.json();
+
+      if (data.status === 'completed' && data.result) {
+        setStatus('completed');
+        setProgress(100);
+        setResult(data.result);
+        
+        // Stop polling
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        
+        // Notify parent component
+        onComplete(data.result);
+      } else if (data.status === 'failed' && data.error) {
+        setStatus('failed');
+        setError({
+          type: data.error.code as any,
+          message: data.error.message,
+          retryable: data.error.retryable,
+        });
+        
+        // Stop polling
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+      } else if (data.status === 'processing' && typeof data.progress === 'number') {
+        setProgress(data.progress);
+      }
+    } catch (err) {
+      console.error('Error checking job status:', err);
+      // Don't set error state here to allow retrying
+    }
+  };
+
+  const handleRetry = () => {
+    // Reset state
+    setStatus('processing');
+    setProgress(0);
+    setError(null);
+    
+    // Start polling again
+    const interval = setInterval(checkStatus, 2000);
+    setPollingInterval(interval);
+    
+    // Initial status check
+    checkStatus();
+  };
+
+  return (
+    <div className="max-w-md mx-auto py-8 px-4">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-semibold mb-2">
+          {status === 'processing' ? 'Processing Your Try-On' : 
+           status === 'completed' ? 'Try-On Complete!' : 
+           'Processing Failed'}
+        </h2>
+        <p className="text-gray-600">
+          {status === 'processing' ? 'Please wait while we create your virtual try-on...' : 
+           status === 'completed' ? 'Your virtual try-on is ready!' : 
+           'There was a problem processing your try-on.'}
+        </p>
+      </div>
+
+      {status === 'processing' && (
+        <div className="space-y-6">
+          <ProgressBar progress={progress} />
+          <p className="text-center text-sm text-gray-500">
+            Estimated time remaining: {Math.max(0, Math.ceil(60 * (100 - progress) / 100))} seconds
+          </p>
+        </div>
+      )}
+
+      {status === 'failed' && error && (
+        <ErrorDisplay 
+          error={error}
+          onRetry={error.retryable ? handleRetry : undefined}
+          onStartOver={() => window.location.reload()}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+6. Implement the ProgressBar component in components/tryon/processing/ProgressBar.tsx
+7. Implement the ErrorDisplay component in components/tryon/processing/ErrorDisplay.tsx
+8. Add proper error handling and retry functionality
+
+# Test Strategy:
+Test the ProcessingStatus component:
+1. Create a test page that renders the ProcessingStatus component with a mock job ID
+2. Mock the fetch API to return different job statuses
+3. Verify that the component displays the correct UI for each job status
+4. Test the polling functionality by changing the mock response over time
+5. Verify that the onComplete callback is called when the job completes
+6. Test error handling by returning error responses
+7. Verify that the retry functionality works correctly
