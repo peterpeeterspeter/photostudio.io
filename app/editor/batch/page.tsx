@@ -1,5 +1,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const PRESETS = {
   "Ghost Mannequin": "Remove human/model/mannequin entirely. Preserve realistic inner neck/arm openings and natural drape (ghost mannequin style). Neutral #f6f6f6 background. No warping.",
@@ -36,6 +38,9 @@ interface BatchStatus {
 }
 
 export default function BatchEditor() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  
   const [files, setFiles] = useState<File[]>([]);
   const [prompt, setPrompt] = useState<string>('Ghost mannequin on neutral #f6f6f6 background.');
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -160,6 +165,21 @@ export default function BatchEditor() {
 
     return () => clearInterval(pollInterval);
   }, [batchId]);
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    router.push('/login?redirectTo=' + encodeURIComponent('/editor/batch'));
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">

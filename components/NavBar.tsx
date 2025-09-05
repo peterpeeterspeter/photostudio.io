@@ -4,8 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import clsx from "clsx";
+import { useAuth } from "@/contexts/AuthContext";
 
-const links = [
+const publicLinks = [
+  { href: "/", label: "Home", startsWith: "/" },
+];
+
+const authLinks = [
   { href: "/", label: "Home", startsWith: "/" },
   { href: "/editor/batch", label: "Editor", startsWith: "/editor" },
   { href: "/integrations/shopify", label: "Shopify", startsWith: "/integrations" },
@@ -15,6 +20,9 @@ const links = [
 export function NavBar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
+  
+  const links = user ? authLinks : publicLinks;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -51,12 +59,30 @@ export function NavBar() {
             );
           })}
 
-          <Link
-            href="/signup"
-            className="ml-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Start Free
-          </Link>
+          {loading ? (
+            <div className="ml-3 h-8 w-20 bg-gray-200 animate-pulse rounded-lg"></div>
+          ) : user ? (
+            <div className="ml-3 flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {user.user_metadata?.store_name || user.email}
+              </span>
+              <button
+                onClick={async () => {
+                  await signOut();
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/signup"
+              className="ml-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              Start Free
+            </Link>
+          )}
         </nav>
 
         {/* Mobile burger */}
@@ -99,13 +125,32 @@ export function NavBar() {
                 );
               })}
               <li className="pt-1">
-                <Link
-                  href="/signup"
-                  className="block rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-indigo-700"
-                  onClick={() => setOpen(false)}
-                >
-                  Start Free
-                </Link>
+                {loading ? (
+                  <div className="h-10 bg-gray-200 animate-pulse rounded-lg"></div>
+                ) : user ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-600 px-3">
+                      {user.user_metadata?.store_name || user.email}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await signOut();
+                        setOpen(false);
+                      }}
+                      className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-center text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/signup"
+                    className="block rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+                    onClick={() => setOpen(false)}
+                  >
+                    Start Free
+                  </Link>
+                )}
               </li>
             </ul>
             <div className="mt-3 flex items-center gap-4 border-t border-gray-200 pt-3">

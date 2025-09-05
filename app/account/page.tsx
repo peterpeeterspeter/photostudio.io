@@ -1,46 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, signOut } from '@/lib/auth'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Account() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const router = useRouter()
-
-  useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
-    try {
-      const currentUser = await getCurrentUser()
-      if (currentUser) {
-        setUser(currentUser)
-      } else {
-        router.push('/login')
-      }
-    } catch (error) {
-      router.push('/login')
-    }
-    setLoading(false)
-  }
+  const { user, loading, signOut } = useAuth()
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push('/')
+    const { error } = await signOut()
+    if (!error) {
+      router.push('/')
+    }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div>Loading...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   if (!user) {
+    // Redirect to login if not authenticated
+    router.push('/login?redirectTo=' + encodeURIComponent('/account'))
     return null
   }
 

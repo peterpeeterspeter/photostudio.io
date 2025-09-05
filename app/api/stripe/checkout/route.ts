@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest } from 'next/server';
 import { stripe, PRICES, PlanKey } from '@/lib/stripe';
-import { createSupabaseServer } from '@/lib/supabase-server';
+import { createSupabaseServer } from '@/lib/supabase-server-only';
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServer();

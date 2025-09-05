@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { supabaseService } from '../../../../lib/supabase';
+import { createSupabaseAdmin } from '../../../../lib/supabase-unified';
 import type { ExportItem, BatchSettings } from '../../../../lib/resize';
 
 export async function POST(req: Request) {
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Maximum 25 images per batch' }, { status: 400 });
     }
 
-    const sb = supabaseService();
+    const sb = createSupabaseAdmin();
     
     // Create batch record with settings
     const { data: batch, error: batchError } = await sb

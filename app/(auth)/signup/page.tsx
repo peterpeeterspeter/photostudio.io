@@ -1,47 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signUp, signIn } from '@/lib/auth'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function SignUp() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [storeName, setStoreName] = useState('')
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const router = useRouter()
+  const { signUp, loading, error, user, session, clearError } = useAuth()
+
+  // Handle successful signup/signin
+  useEffect(() => {
+    if (user && session) {
+      setMessage('Account created and signed in!')
+      router.push('/account')
+    } else if (user && !session) {
+      setMessage('Account created! Please check your email to confirm your account, then sign in.')
+    }
+  }, [user, session, router])
+
+  // Handle auth errors
+  useEffect(() => {
+    if (error) {
+      if (error.message.includes('User already registered')) {
+        setMessage('Account already exists! Please check your email for confirmation or try logging in.')
+      } else {
+        setMessage(error.message)
+      }
+    }
+  }, [error])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setMessage('')
+    clearError()
 
-    try {
-      const { data, error } = await signUp(email, password, storeName)
-      
-      if (error) {
-        if (error.message.includes('User already registered')) {
-          setMessage('Account already exists! Please check your email for confirmation or try logging in.')
-        } else {
-          setMessage(`${error.message}`)
-        }
-      } else if (data.user) {
-        if (data.session) {
-          // User is immediately signed in (email confirmation disabled)
-          setMessage('Account created and signed in!')
-          router.push('/account')
-        } else {
-          // Email confirmation required
-          setMessage('Account created! Please check your email to confirm your account, then sign in.')
-        }
-      }
-    } catch (err) {
-      setMessage('Unexpected error occurred')
-      console.error('Signup error:', err)
-    }
+    const { user: newUser, error: signUpError } = await signUp(email, password, storeName)
     
-    setLoading(false)
+    if (signUpError) {
+      // Error handling is done in useEffect above
+      return
+    }
+
+    // Success handling is done in useEffect above
   }
 
   return (

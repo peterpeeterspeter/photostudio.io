@@ -1,5 +1,7 @@
 "use client";
 import React, { useMemo, useRef, useState } from "react";
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const MODEL_ID = "gemini-2.5-flash-image-preview"; // used for display only
 
@@ -16,6 +18,9 @@ const PRESETS = {
 };
 
 export default function Page() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  
   const [file, setFile] = useState(null);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -99,6 +104,21 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    router.push('/login?redirectTo=' + encodeURIComponent('/editor'));
+    return null;
   }
 
   return (

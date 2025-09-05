@@ -1,42 +1,62 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { signIn } from '@/lib/auth'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { signIn, loading, error, user, clearError } = useAuth()
+
+  // Handle redirects after successful login
+  useEffect(() => {
+    if (user) {
+      const redirectTo = searchParams.get('redirectTo') || '/account'
+      router.push(redirectTo)
+    }
+  }, [user, router, searchParams])
+
+  // Handle auth errors
+  useEffect(() => {
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        setMessage('Wrong email or password. Try signing up if you don\'t have an account.')
+      } else if (error.message.includes('Email not confirmed')) {
+        setMessage('Please check your email and click the confirmation link before signing in.')
+      } else {
+        setMessage(`Error: ${error.message}`)
+      }
+    }
+  }, [error])
+
+  // Handle URL error parameter
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError === 'session_expired') {
+      setMessage('Your session has expired. Please sign in again.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setMessage('')
+    clearError()
 
-    try {
-      const { data, error } = await signIn(email, password)
-      
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setMessage('Wrong email or password. Try signing up if you don\'t have an account.')
-        } else if (error.message.includes('Email not confirmed')) {
-          setMessage('Please check your email and click the confirmation link before signing in.')
-        } else {
-          setMessage(`Error: ${error.message}`)
-        }
-      } else if (data.user) {
-        setMessage('Signed in successfully!')
-        router.push('/account')
-      }
-    } catch (err) {
-      setMessage('Unexpected error occurred')
-      console.error('Login error:', err)
-    }
+    const { user: signedInUser, error: signInError } = await signIn(email, password)
     
-    setLoading(false)
+    if (signInError) {
+      // Error handling is done in useEffect above
+      return
+    }
+
+    if (signedInUser) {
+      setMessage('Signed in successfully!')
+      // Redirect is handled in useEffect above
+    }
   }
 
   return (
